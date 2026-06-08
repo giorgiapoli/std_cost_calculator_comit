@@ -289,6 +289,31 @@
         <label>Aliquota AIEM % (0 = esenzione)</label>
         <input type="number" id="aiem" value="4" placeholder="es. 4" oninput="resetResults()">
       </div>
+
+      <!-- TASSA ALCOLICI -->
+      <div style="margin-top:10px;border-top:1px solid rgba(255,255,255,0.07);padding-top:12px;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;cursor:pointer;" onclick="toggleAlcool()">
+          <div id="alc-checkbox" style="width:16px;height:16px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0;transition:all 0.2s;"></div>
+          <span style="font-size:12px;color:var(--muted);">🍷 Tassa alcolici AIEM (Beverage)</span>
+        </div>
+        <div id="alc-fields" style="display:none;">
+          <div style="background:rgba(107,59,196,0.08);border:1px solid rgba(107,59,196,0.2);border-radius:7px;padding:10px 12px;margin-bottom:10px;font-size:10px;color:rgba(232,224,208,0.55);line-height:1.6;">
+            Formula: <strong style="color:rgba(232,224,208,0.8)">Tassa/u = Lt_contenitore × (Grado% / 100) × 7.5036</strong><br>
+            Dove 7.5036 = aliquota 750,36 €/hl · Es: 20 Lt × 10,8% × 7.5036 = 16,21 €/u
+          </div>
+          <div class="field">
+            <label>Litri per unità (dimensione contenitore)</label>
+            <input type="number" id="alc-litri" placeholder="es. 0.75 (bottiglia) · 5 · 20" oninput="resetResults()">
+          </div>
+          <div class="field">
+            <label>Grado alcolico (%)</label>
+            <input type="number" id="alc-grado" placeholder="es. 11.5" oninput="resetResults()">
+          </div>
+          <div style="font-size:10px;color:var(--dim);margin-top:-4px;">
+            Aliquota fissa: 750,36 €/hl (AIEM Canarie — Beverage)
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Right: temp + transport -->
@@ -372,6 +397,7 @@ const state = {
   transport: "GOMMA",
   area: "NORD",
   islands: { GC: true, TF: true, LAN: false, FUE: false },
+  hasAlcool: false,
 };
 
 // ─── COSTI (dal modello Canarie) ──────────────────────────────────────────────
@@ -541,6 +567,21 @@ function updateFobWarn() {
   warn.classList.toggle('visible', !!msg);
 }
 
+// ─── TASSA ALCOLICI ───────────────────────────────────────────────────────────
+const AIEM_ALCOLICI_PER_HL = 750.36; // €/ettolitro di alcol puro
+
+function toggleAlcool() {
+  state.hasAlcool = !state.hasAlcool;
+  const cb = document.getElementById('alc-checkbox');
+  const fields = document.getElementById('alc-fields');
+  cb.style.background   = state.hasAlcool ? '#6B3BC4' : 'rgba(255,255,255,0.08)';
+  cb.style.borderColor  = state.hasAlcool ? '#6B3BC4' : 'rgba(255,255,255,0.15)';
+  cb.textContent        = state.hasAlcool ? '✓' : '';
+  cb.style.color        = '#fff';
+  fields.style.display  = state.hasAlcool ? '' : 'none';
+  resetResults();
+}
+
 // ─── VALIDATION ──────────────────────────────────────────────────────────────
 function checkCanCalc() {
   const price = parseFloat(document.getElementById('purchase-price').value);
@@ -567,6 +608,13 @@ function calculate() {
   const box   = parseFloat(document.getElementById('box-per-pallet').value);
   const qty   = parseFloat(document.getElementById('qty-per-box').value) || 0;
   const aiem  = parseFloat(document.getElementById('aiem').value) || 0;
+
+  // Tassa alcolici: Lt_unità × (grado/100) × (750.36/100) = €/unità
+  const alcLitri = state.hasAlcool ? (parseFloat(document.getElementById('alc-litri').value) || 0) : 0;
+  const alcGrado = state.hasAlcool ? (parseFloat(document.getElementById('alc-grado').value) || 0) : 0;
+  const alcTassaPerUnit = alcLitri > 0 && alcGrado > 0
+    ? alcLitri * (alcGrado / 100) * (AIEM_ALCOLICI_PER_HL / 100)
+    : 0;
 
   const unitsPerPallet = getUnitsPerPallet(qty, box);
   if (!unitsPerPallet || !price) return;
@@ -600,7 +648,7 @@ function calculate() {
 
     const palletPerUnit = C.PALLET_COST / unitsPerPallet;
     const aiemRate = aiem / 100;
-    const aiemBase = price + freightPerUnit + inlandPerUnit + palletPerUnit;
+    const aiemBase = price + freightPerUnit + inlandPerUnit + palletPerUnit + alcTassaPerUnit;
     const aiemPerUnit = aiemRate > 0 ? aiemBase * aiemRate : 0;
     const step1 = aiemBase + aiemPerUnit;
 
@@ -637,6 +685,7 @@ function calculate() {
       ${row('Trasporto / unità', freightPerUnit.toFixed(4))}
       ${inlandPerUnit > 0 ? row('Inland + Dogana', inlandPerUnit.toFixed(4)) : ''}
       ${row('Costo pallet / unità', palletPerUnit.toFixed(4))}
+      ${alcTassaPerUnit > 0 ? row('🍷 Tassa alcolici AIEM (' + alcGrado + '° · ' + alcLitri + 'Lt)', alcTassaPerUnit.toFixed(4)) : ''}
       ${aiemPerUnit > 0 ? row('AIEM (' + aiem + '%)', aiemPerUnit.toFixed(4)) : ''}
       <div class="cost-divider"></div>
       ${row('→ Standard Cost 1', step1.toFixed(4), true)}
