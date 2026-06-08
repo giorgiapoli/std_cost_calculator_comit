@@ -400,12 +400,17 @@ const state = {
   hasAlcool: false,
 };
 
-// ─── COSTI (dal modello Canarie) ──────────────────────────────────────────────
+// ─── COSTI MODIFICATI con valori corretti ────────────────────────────────────
 const C = {
   VERONA_BARCELONA: 2000,
-  PLT_TRUCK_DRY: 32,
-  PLT_TRUCK_FROZEN: 24,
+  // VALORI CORRETTI PER TRUCK (gomma)
+  PLT_TRUCK_DRY: 32,      // 32 pallet per camion DRY
+  PLT_TRUCK_FRESH: 32,    // 32 pallet per camion FRESH
+  PLT_TRUCK_FROZEN: 24,   // 24 pallet per camion FROZEN
+  // VALORI CORRETTI PER CONTAINER (mare)
+  PLT_PER_CONTAINER: 24,  // 24 pallet per container
   PALLET_COST: 15,
+  
   FREIGHT_GOMMA: {
     GC:  { DRY: 133.692,  FRESH: 117,    FROZEN: 133.692  },
     TF:  { DRY: 133.692,  FRESH: 117,    FROZEN: 133.692  },
@@ -418,7 +423,6 @@ const C = {
     LAN_NORD: 3521.4375,  FUE_NORD: 3521.4375,
   },
   INLAND: { GC: 762, TF: 762, LAN: 830, FUE: 830 },
-  PLT_PER_CONTAINER: 24,
   FUEL_SURCHARGE: 0.0284,
   INSURANCE: 0.005,
   MTO: { DRY: 8.16,    FRESH: 10.2,   FROZEN: 12.24   },
@@ -602,7 +606,7 @@ function resetResults() {
   checkCanCalc();
 }
 
-// ─── CALCULATION ─────────────────────────────────────────────────────────────
+// ─── CALCULATION MODIFICATA con valori corretti ──────────────────────────────
 function calculate() {
   const price = parseFloat(document.getElementById('purchase-price').value);
   const box   = parseFloat(document.getElementById('box-per-pallet').value);
@@ -632,7 +636,14 @@ function calculate() {
 
     if (state.transport === 'GOMMA') {
       const freightPerPallet = C.FREIGHT_GOMMA[key]?.[temp] || 0;
-      const truckPallets = temp === 'FROZEN' ? C.PLT_TRUCK_FROZEN : C.PLT_TRUCK_DRY;
+      
+      // SELEZIONE CORRETTA dei pallet per truck in base alla temperatura
+      let truckPallets;
+      if (temp === 'DRY') truckPallets = C.PLT_TRUCK_DRY;      // 32
+      else if (temp === 'FRESH') truckPallets = C.PLT_TRUCK_FRESH; // 32
+      else if (temp === 'FROZEN') truckPallets = C.PLT_TRUCK_FROZEN; // 24
+      else truckPallets = C.PLT_TRUCK_DRY;
+      
       const veronaPerUnit = C.VERONA_BARCELONA / truckPallets / unitsPerPallet;
       const freightUnit   = freightPerPallet / unitsPerPallet;
       const fuel          = freightUnit * C.FUEL_SURCHARGE;
