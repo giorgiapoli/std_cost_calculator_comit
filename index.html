@@ -131,7 +131,6 @@
   }
   .field input:focus { border-color: rgba(196,135,59,0.5); }
 
-  /* Stili per i nuovi campi inline */
   .inline-fields {
     display: flex;
     gap: 16px;
@@ -325,17 +324,16 @@
     <div>
       <div class="box" style="margin-bottom:14px;">
         <div class="box-label">🌡️ Temperatura</div>
-        <button class="btn-radio active" data-temp="DRY"    onclick="setTemp(this)" style="border-color:#C4873B;background:rgba(196,135,59,0.2);color:#EEE;">🌾 Dry (Secco)</button>
-        <button class="btn-radio"        data-temp="FRESH"  onclick="setTemp(this)">❄️ Fresh (Fresco)</button>
-        <button class="btn-radio"        data-temp="FROZEN" onclick="setTemp(this)">🧊 Frozen (Surgelato)</button>
+        <button class="btn-radio active" data-temp="DRY" onclick="setTemp(this)" style="border-color:#C4873B;background:rgba(196,135,59,0.2);color:#EEE;">🌾 Dry (Secco)</button>
+        <button class="btn-radio" data-temp="FRESH" onclick="setTemp(this)">❄️ Fresh (Fresco)</button>
+        <button class="btn-radio" data-temp="FROZEN" onclick="setTemp(this)">🧊 Frozen (Surgelato)</button>
       </div>
 
       <div class="box">
         <div class="box-label">🚚 Trasporto</div>
         <button class="btn-radio active" data-tr="GOMMA" onclick="setTransport(this)" style="border-color:#4A8C9B;background:rgba(74,140,155,0.18);color:#EEE;">🚛 Camion (Gomma)</button>
-        <button class="btn-radio"        data-tr="MARE"  onclick="setTransport(this)" id="btn-mare">🚢 Container (Mare)</button>
+        <button class="btn-radio" data-tr="MARE" onclick="setTransport(this)" id="btn-mare">🚢 Container (Mare)</button>
         
-        <!-- NUOVI CAMPI: pallet per truck e per container -->
         <div class="inline-fields">
           <div class="inline-field">
             <label>📦 Pallet per TRUCK</label>
@@ -351,7 +349,7 @@
           <div style="font-size:10px;color:var(--muted);margin-bottom:6px;letter-spacing:1px;">AREA FORNITORE</div>
           <div style="display:flex;gap:8px;">
             <button class="btn-area active" data-area="NORD" onclick="setArea(this)">Nord Italia</button>
-            <button class="btn-area"        data-area="SUD"  onclick="setArea(this)">Sud Italia</button>
+            <button class="btn-area" data-area="SUD" onclick="setArea(this)">Sud Italia</button>
           </div>
         </div>
       </div>
@@ -361,22 +359,22 @@
   <div class="box" style="margin-bottom:16px;">
     <div class="box-label">🏝️ Destinazioni</div>
     <div class="grid-4">
-      <button class="island-btn active" data-island="GC"  onclick="toggleIsland(this)">
+      <button class="island-btn active" data-island="GC" onclick="toggleIsland(this)">
         <div class="island-icon">🏝️</div>
         <div class="island-key">GC</div>
         <div class="island-name">Gran Canaria</div>
       </button>
-      <button class="island-btn active" data-island="TF"  onclick="toggleIsland(this)">
+      <button class="island-btn active" data-island="TF" onclick="toggleIsland(this)">
         <div class="island-icon">🌋</div>
         <div class="island-key">TF</div>
         <div class="island-name">Tenerife</div>
       </button>
-      <button class="island-btn"        data-island="LAN" onclick="toggleIsland(this)">
+      <button class="island-btn" data-island="LAN" onclick="toggleIsland(this)">
         <div class="island-icon">🌿</div>
         <div class="island-key">LAN</div>
         <div class="island-name">Lanzarote</div>
       </button>
-      <button class="island-btn"        data-island="FUE" onclick="toggleIsland(this)">
+      <button class="island-btn" data-island="FUE" onclick="toggleIsland(this)">
         <div class="island-icon">🏜️</div>
         <div class="island-key">FUE</div>
         <div class="island-name">Fuerteventura</div>
@@ -403,7 +401,6 @@
 </div>
 
 <script>
-// ─── STATO ───────────────────────────────────────────────────────────────────
 const state = {
   uom: "PCS",
   ubicazione: "MTO",
@@ -414,11 +411,8 @@ const state = {
   hasAlcool: false,
 };
 
-// ─── COSTI (dal modello Canarie) ──────────────────────────────────────────────
 const C = {
   VERONA_BARCELONA: 2000,
-  PLT_TRUCK_DRY: 32,
-  PLT_TRUCK_FROZEN: 24,
   PALLET_COST: 15,
   FREIGHT_GOMMA: {
     GC:  { DRY: 133.692,  FRESH: 117,    FROZEN: 133.692  },
@@ -432,7 +426,6 @@ const C = {
     LAN_NORD: 3521.4375,  FUE_NORD: 3521.4375,
   },
   INLAND: { GC: 762, TF: 762, LAN: 830, FUE: 830 },
-  PLT_PER_CONTAINER: 24,
   FUEL_SURCHARGE: 0.0284,
   INSURANCE: 0.005,
   MTO: { DRY: 8.16,    FRESH: 10.2,   FROZEN: 12.24   },
@@ -444,17 +437,16 @@ const C = {
   ISLAND_NAMES:  { GC:"Gran Canaria", TF:"Tenerife", LAN:"Lanzarote", FUE:"Fuerteventura" },
 };
 
-// ─── UOM HELPERS ─────────────────────────────────────────────────────────────
 function getUnitsPerPallet(qtyPerBox, boxPerPallet) {
   if (state.uom === "BOX") return boxPerPallet;
   return qtyPerBox * boxPerPallet;
 }
+
 function getPickingDivisor(qtyPerBox) {
   if (state.uom === "BOX") return 1;
   return qtyPerBox;
 }
 
-// ─── SETTERS (TUTTO INVARIATO) ───────────────────────────────────────────────
 function setUOM(btn) {
   state.uom = btn.dataset.uom;
   document.querySelectorAll('#uom-btns .btn-toggle').forEach(b => b.classList.remove('active'));
@@ -484,7 +476,8 @@ function setUOM(btn) {
     boxLabel.textContent = 'Cartoni per pallet';
     hint.textContent = 'Prezzo per singolo pezzo. Divisore = pz/cartone × cartoni/pallet.';
   }
-  resetResults(); checkCanCalc();
+  resetResults();
+  checkCanCalc();
 }
 
 function setUbic(btn) {
@@ -527,15 +520,15 @@ function setTemp(btn) {
     btnMare.disabled = false;
   }
 
-  document.getElementById('calc-btn').style.background =
-    'linear-gradient(135deg,' + c + ',#1A4060)';
-
-  resetResults(); checkCanCalc();
+  document.getElementById('calc-btn').style.background = 'linear-gradient(135deg,' + c + ',#1A4060)';
+  resetResults();
+  checkCanCalc();
 }
 
 function setTransport(btn) {
   setTransportByValue(btn.dataset.tr);
 }
+
 function setTransportByValue(val) {
   state.transport = val;
   document.querySelectorAll('[data-tr]').forEach(b => {
@@ -551,7 +544,7 @@ function setTransportByValue(val) {
     btn.style.background = 'rgba(74,140,155,0.18)';
     btn.style.color = '#EEE';
   }
-  document.getElementById('area-row').style.display = val === 'MARE' ? '' : 'none';
+  document.getElementById('area-row').style.display = val === 'MARE' ? 'flex' : 'none';
   updateFobWarn();
   resetResults();
 }
@@ -560,14 +553,16 @@ function setArea(btn) {
   state.area = btn.dataset.area;
   document.querySelectorAll('[data-area]').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
-  updateFobWarn(); resetResults();
+  updateFobWarn();
+  resetResults();
 }
 
 function toggleIsland(btn) {
   const key = btn.dataset.island;
   state.islands[key] = !state.islands[key];
   btn.classList.toggle('active', state.islands[key]);
-  resetResults(); checkCanCalc();
+  resetResults();
+  checkCanCalc();
 }
 
 function updateFobWarn() {
@@ -578,31 +573,27 @@ function updateFobWarn() {
   warn.classList.toggle('visible', !!msg);
 }
 
-// ─── TASSA ALCOLICI ───────────────────────────────────────────────────────────
 const AIEM_ALCOLICI_PER_HL = 750.36;
 
 function toggleAlcool() {
   state.hasAlcool = !state.hasAlcool;
   const cb = document.getElementById('alc-checkbox');
   const fields = document.getElementById('alc-fields');
-  cb.style.background   = state.hasAlcool ? '#6B3BC4' : 'rgba(255,255,255,0.08)';
-  cb.style.borderColor  = state.hasAlcool ? '#6B3BC4' : 'rgba(255,255,255,0.15)';
-  cb.textContent        = state.hasAlcool ? '✓' : '';
-  cb.style.color        = '#fff';
-  fields.style.display  = state.hasAlcool ? '' : 'none';
+  cb.style.background = state.hasAlcool ? '#6B3BC4' : 'rgba(255,255,255,0.08)';
+  cb.style.borderColor = state.hasAlcool ? '#6B3BC4' : 'rgba(255,255,255,0.15)';
+  cb.textContent = state.hasAlcool ? '✓' : '';
+  cb.style.color = '#fff';
+  fields.style.display = state.hasAlcool ? 'block' : 'none';
   resetResults();
 }
 
-// ─── VALIDATION ──────────────────────────────────────────────────────────────
 function checkCanCalc() {
   const price = parseFloat(document.getElementById('purchase-price').value);
-  const box   = parseFloat(document.getElementById('box-per-pallet').value);
-  const qty   = parseFloat(document.getElementById('qty-per-box').value);
+  const box = parseFloat(document.getElementById('box-per-pallet').value);
+  const qty = parseFloat(document.getElementById('qty-per-box').value);
   const anyIsland = Object.values(state.islands).some(v => v);
-
   const needQty = state.uom !== 'BOX';
   const ok = price > 0 && box > 0 && (!needQty || qty > 0) && anyIsland;
-
   const btn = document.getElementById('calc-btn');
   btn.disabled = !ok;
   btn.textContent = ok ? '✦  CALCOLA STANDARD COST' : 'Completa i campi per calcolare';
@@ -613,27 +604,23 @@ function resetResults() {
   checkCanCalc();
 }
 
-// ─── CALCULATION (MODIFICATA SOLO PER USARE I VALORI DEI NUOVI CAMPI) ─────────
 function calculate() {
   const price = parseFloat(document.getElementById('purchase-price').value);
-  const box   = parseFloat(document.getElementById('box-per-pallet').value);
-  const qty   = parseFloat(document.getElementById('qty-per-box').value) || 0;
-  const aiem  = parseFloat(document.getElementById('aiem').value) || 0;
-
-  // LEGGI I VALORI DEI NUOVI CAMPI
+  const box = parseFloat(document.getElementById('box-per-pallet').value);
+  const qty = parseFloat(document.getElementById('qty-per-box').value) || 0;
+  const aiem = parseFloat(document.getElementById('aiem').value) || 0;
+  
   const palletsPerTruck = parseFloat(document.getElementById('pallets-per-truck').value) || 32;
   const palletsPerContainer = parseFloat(document.getElementById('pallets-per-container').value) || 24;
 
   const alcLitri = state.hasAlcool ? (parseFloat(document.getElementById('alc-litri').value) || 0) : 0;
   const alcGrado = state.hasAlcool ? (parseFloat(document.getElementById('alc-grado').value) || 0) : 0;
-  const alcTassaPerUnit = alcLitri > 0 && alcGrado > 0
-    ? alcLitri * (alcGrado / 100) * (AIEM_ALCOLICI_PER_HL / 100)
-    : 0;
+  const alcTassaPerUnit = alcLitri > 0 && alcGrado > 0 ? alcLitri * (alcGrado / 100) * (AIEM_ALCOLICI_PER_HL / 100) : 0;
 
   const unitsPerPallet = getUnitsPerPallet(qty, box);
   if (!unitsPerPallet || !price) return;
 
-  const islands = ['GC','TF','LAN','FUE'];
+  const islands = ['GC', 'TF', 'LAN', 'FUE'];
   const grid = document.getElementById('results-grid');
   grid.innerHTML = '';
 
@@ -646,19 +633,17 @@ function calculate() {
 
     if (state.transport === 'GOMMA') {
       const freightPerPallet = C.FREIGHT_GOMMA[key]?.[temp] || 0;
-      // USA il valore dal campo palletsPerTruck
       const veronaPerUnit = C.VERONA_BARCELONA / palletsPerTruck / unitsPerPallet;
-      const freightUnit   = freightPerPallet / unitsPerPallet;
-      const fuel          = freightUnit * C.FUEL_SURCHARGE;
-      const insurance     = price * C.INSURANCE;
+      const freightUnit = freightPerPallet / unitsPerPallet;
+      const fuel = freightUnit * C.FUEL_SURCHARGE;
+      const insurance = price * C.INSURANCE;
       freightPerUnit = veronaPerUnit + freightUnit + fuel + insurance;
     } else {
       const cKey = key + '_' + state.area;
-      const freightPerContainer = C.FREIGHT_MARE[cKey] || C.FREIGHT_MARE[key+'_NORD'] || 0;
-      // USA il valore dal campo palletsPerContainer
-      const unitsPerContainer   = palletsPerContainer * unitsPerPallet;
-      freightPerUnit  = freightPerContainer / unitsPerContainer;
-      inlandPerUnit   = C.INLAND[key] / unitsPerContainer;
+      const freightPerContainer = C.FREIGHT_MARE[cKey] || C.FREIGHT_MARE[key + '_NORD'] || 0;
+      const unitsPerContainer = palletsPerContainer * unitsPerPallet;
+      freightPerUnit = freightPerContainer / unitsPerContainer;
+      inlandPerUnit = C.INLAND[key] / unitsPerContainer;
     }
 
     const palletPerUnit = C.PALLET_COST / unitsPerPallet;
@@ -677,9 +662,7 @@ function calculate() {
       const i = C.MTS_I[temp] / unitsPerPallet;
       const p = C.MTS_P[temp] / pickDiv;
       wh = d + i + p;
-      whRows = row('🏭 Deposito', d.toFixed(4))
-             + row('🏭 Inbound',  i.toFixed(4))
-             + row('🏭 Picking',  p.toFixed(4));
+      whRows = row('🏭 Deposito', d.toFixed(4)) + row('🏭 Inbound', i.toFixed(4)) + row('🏭 Picking', p.toFixed(4));
     } else {
       whRows = '<div class="cost-row" style="font-style:italic;color:var(--dim)"><span>🚛 FOR — nessun handling</span></div>';
     }
@@ -723,10 +706,7 @@ function calculate() {
 function row(label, val, bold, highlight) {
   const cls = bold ? 'cost-row bold' : 'cost-row';
   const color = highlight ? 'var(--text)' : '';
-  return `<div class="${cls}" style="color:${color}">
-    <span>${label}</span>
-    <span class="mono">€ ${val}</span>
-  </div>`;
+  return `<div class="${cls}" style="color:${color}"><span>${label}</span><span class="mono">€ ${val}</span></div>`;
 }
 
 document.getElementById('purchase-price').addEventListener('input', checkCanCalc);
