@@ -9,9 +9,7 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { margin: 0; font-family: 'Georgia', 'Times New Roman', serif; }
-        input[type="number"]::-webkit-inner-spin-button,
-        input[type="number"]::-webkit-outer-spin-button { opacity: 0.5; }
+        body { margin: 0; font-family: 'Georgia', 'Times New Roman', serif; background: #0F1923; }
     </style>
 </head>
 <body>
@@ -19,73 +17,43 @@
     <script type="text/babel">
         const { useState, useCallback } = React;
 
-        // ─── COST CONSTANTS ───────────────────────────────────────────────
+        // Costi e configurazioni
         const COSTS = {
             VERONA_BARCELONA_FIXED: 2000,
             PALLETS_PER_TRUCK_DRY: 32,
             PALLETS_PER_TRUCK_FROZEN: 24,
             PALLET_COST: 15,
-
             FREIGHT_GOMMA: {
                 GC: { DRY: 133.692, FRESH: 117, FROZEN: 133.692 },
                 TF: { DRY: 133.692, FRESH: 117, FROZEN: 133.692 },
                 LAN: { DRY: 190.254, FRESH: 190.254, FROZEN: 271.4976 },
                 FUE: { DRY: 190.254, FRESH: 190.254, FROZEN: 271.4976 },
             },
-
             FREIGHT_MARE_CONTAINER: {
-                GC_NORD: 2580.723404,
-                GC_SUD: 2258.529412,
-                TF_NORD: 2580.723404,
-                TF_SUD: 2258.529412,
-                LAN_NORD: 3521.4375,
-                FUE_NORD: 3521.4375,
+                GC_NORD: 2580.723404, GC_SUD: 2258.529412,
+                TF_NORD: 2580.723404, TF_SUD: 2258.529412,
+                LAN_NORD: 3521.4375, FUE_NORD: 3521.4375,
             },
-
             INLAND_CONTAINER: { GC: 762, TF: 762, LAN: 830, FUE: 830 },
             FUEL_SURCHARGE: 0.0284,
             INSURANCE: 0.005,
-            PALLETS_PER_CONTAINER: 24,  // 24 pallet per container
-
+            PALLETS_PER_CONTAINER: 24,
             MTO_PER_PLT: { DRY: 8.16, FRESH: 10.2, FROZEN: 12.24 },
             MTS_DEPOSITO: { DRY: 14.4228, FRESH: 16.4832, FROZEN: 24.7248 },
             MTS_INBOUND: { DRY: 2.5755, FRESH: 3.6057, FROZEN: 3.6057 },
             MTS_PICKING: { DRY: 0.303, FRESH: 0.3434, FROZEN: 0.3535 },
         };
 
-        // ─── UOM CONFIG ───────────────────────────────────────────────────
         const UOM_CONFIG = {
-            PCS: {
-                label: "PCS — Pezzo", icon: "🔢",
-                priceLabel: "Prezzo acquisto per PEZZO (€)",
-                showQty: true, qtyLabel: "Pezzi per cartone", qtyPlaceholder: "es. 12", qtySuffix: "pz",
-                divisor: f => parseFloat(f.qtyPerBox) * parseFloat(f.boxPerPallet),
-                hint: f => f.qtyPerBox && f.boxPerPallet ? `→ ${Math.round(parseFloat(f.qtyPerBox) * parseFloat(f.boxPerPallet))} pz / pallet` : "",
-                pickingDivisor: f => parseFloat(f.qtyPerBox),
-            },
-            BOX: {
-                label: "BOX — Cartone", icon: "📦",
-                priceLabel: "Prezzo acquisto per CARTONE (€)",
-                showQty: false,
-                divisor: f => parseFloat(f.boxPerPallet),
-                hint: f => f.boxPerPallet ? `→ ${parseFloat(f.boxPerPallet)} box / pallet` : "",
-                pickingDivisor: _ => 1,
-            },
-            KG: {
-                label: "KG — Chilogrammo", icon: "⚖️",
-                priceLabel: "Prezzo acquisto per KG (€)",
-                showQty: true, qtyLabel: "Kg netti per cartone", qtyPlaceholder: "es. 10", qtySuffix: "kg",
-                divisor: f => parseFloat(f.qtyPerBox) * parseFloat(f.boxPerPallet),
-                hint: f => f.qtyPerBox && f.boxPerPallet ? `→ ${Math.round(parseFloat(f.qtyPerBox) * parseFloat(f.boxPerPallet))} kg / pallet` : "",
-                pickingDivisor: f => parseFloat(f.qtyPerBox),
-            },
+            PCS: { label: "PCS — Pezzo", icon: "🔢", priceLabel: "Prezzo per PEZZO (€)", showQty: true, qtyLabel: "Pezzi per cartone", qtySuffix: "pz", divisor: f => f.qtyPerBox * f.boxPerPallet, pickingDivisor: f => f.qtyPerBox },
+            BOX: { label: "BOX — Cartone", icon: "📦", priceLabel: "Prezzo per CARTONE (€)", showQty: false, divisor: f => f.boxPerPallet, pickingDivisor: () => 1 },
+            KG: { label: "KG — Chilogrammo", icon: "⚖️", priceLabel: "Prezzo per KG (€)", showQty: true, qtyLabel: "Kg per cartone", qtySuffix: "kg", divisor: f => f.qtyPerBox * f.boxPerPallet, pickingDivisor: f => f.qtyPerBox },
         };
 
-        // ─── UBICAZIONE ───────────────────────────────────────────────────
         const UBIC_CONFIG = {
-            MTO: { label: "MTO — Cross-docking", icon: "🔄", desc: "Costo In+Stock+Out applicato per pallet", color: "#4A8C9B" },
-            FOR: { label: "FOR — Franco fornitore", icon: "🚛", desc: "Nessun costo di handling aggiunto", color: "#6A9B4A" },
-            MTS: { label: "MTS — Magazzino", icon: "🏭", desc: "Costi Deposito + Inbound + Picking", color: "#C4873B" },
+            MTO: { label: "MTO — Cross-docking", icon: "🔄", desc: "Costo In+Stock+Out per pallet", color: "#4A8C9B" },
+            FOR: { label: "FOR — Franco fornitore", icon: "🚛", desc: "Nessun costo handling", color: "#6A9B4A" },
+            MTS: { label: "MTS — Magazzino", icon: "🏭", desc: "Deposito + Inbound + Picking", color: "#C4873B" },
         };
 
         const ISLANDS = [
@@ -95,374 +63,205 @@
             { key: "FUE", label: "Fuerteventura", flag: "🏜️" },
         ];
 
-        const TEMPERATURE_OPTIONS = [
+        const TEMP_OPTIONS = [
             { value: "DRY", label: "🌾 Dry (Secco)", color: "#C4873B" },
             { value: "FRESH", label: "❄️ Fresh (Fresco)", color: "#3B82C4" },
             { value: "FROZEN", label: "🧊 Frozen (Surgelato)", color: "#6B3BC4" },
         ];
 
         const TRANSPORT_OPTIONS = [
-            { value: "GOMMA", label: "🚛 Camion (Gomma)", desc: "Via Barcelona → Isole" },
-            { value: "MARE", label: "🚢 Container (Mare)", desc: "Via mare — solo DRY" },
+            { value: "GOMMA", label: "🚛 Camion (Gomma)" },
+            { value: "MARE", label: "🚢 Container (Mare)" },
         ];
 
-        // ─── CALCOLO CON FORMULA MARE CORRETTA ─────────────────────────────
-        function calculateStandardCost({
-            purchasePrice, uom, qtyPerBox, boxPerPallet,
-            temperature, transport, aiem, area = "NORD", isSelected, ubicazione
-        }) {
+        // Funzione di calcolo
+        function calculateCost({ purchasePrice, uom, qtyPerBox, boxPerPallet, temperature, transport, aiem, area, isSelected, ubicazione }) {
             if (!purchasePrice || !boxPerPallet) return null;
-            
             const uomCfg = UOM_CONFIG[uom];
-            const unitsPerPallet = uomCfg.divisor({ qtyPerBox, boxPerPallet });
+            const unitsPerPallet = uomCfg.divisor({ qtyPerBox: parseFloat(qtyPerBox) || 0, boxPerPallet: parseFloat(boxPerPallet) || 0 });
             if (unitsPerPallet <= 0) return null;
-            
+
             const results = {};
-
             ISLANDS.forEach(({ key }) => {
-                if (!isSelected[key]) {
-                    results[key] = null;
-                    return;
-                }
+                if (!isSelected[key]) { results[key] = null; return; }
 
-                let freightPerUnit = 0;
-                let inlandPerUnit = 0;
-                let calculationNote = "";
+                let freightPerUnit = 0, inlandPerUnit = 0;
 
                 if (transport === "GOMMA") {
-                    // Gomma: costo per pallet / unità per pallet
-                    const freightPerPallet = COSTS.FREIGHT_GOMMA[key]?.[temperature] ?? 0;
-                    freightPerUnit = freightPerPallet / unitsPerPallet;
-
-                    const palletsPerTruck = temperature === "FROZEN" ? COSTS.PALLETS_PER_TRUCK_FROZEN : COSTS.PALLETS_PER_TRUCK_DRY;
-                    const veronaBarcelonaPerUnit = COSTS.VERONA_BARCELONA_FIXED / palletsPerTruck / unitsPerPallet;
-                    const fuelPerUnit = (freightPerPallet / unitsPerPallet) * COSTS.FUEL_SURCHARGE;
-                    const insurancePerUnit = purchasePrice * COSTS.INSURANCE;
-
-                    freightPerUnit = veronaBarcelonaPerUnit + freightPerUnit + fuelPerUnit + insurancePerUnit;
-                    calculationNote = `Camion: ${freightPerPallet.toFixed(2)}€/plt → ${(freightPerPallet / unitsPerPallet).toFixed(4)}€/u`;
-                } 
-                else {  // MARE - formula corretta: costo_container / (n_pallet_container * unità_per_pallet)
+                    const freightPerPallet = COSTS.FREIGHT_GOMMA[key]?.[temperature] || 0;
+                    const veronaPerUnit = COSTS.VERONA_BARCELONA_FIXED / (temperature === "FROZEN" ? COSTS.PALLETS_PER_TRUCK_FROZEN : COSTS.PALLETS_PER_TRUCK_DRY) / unitsPerPallet;
+                    const freightUnit = freightPerPallet / unitsPerPallet;
+                    const fuel = freightUnit * COSTS.FUEL_SURCHARGE;
+                    const insurance = purchasePrice * COSTS.INSURANCE;
+                    freightPerUnit = veronaPerUnit + freightUnit + fuel + insurance;
+                } else {
                     const containerKey = `${key}_${area}`;
-                    const freightPerContainer = COSTS.FREIGHT_MARE_CONTAINER[containerKey] ?? COSTS.FREIGHT_MARE_CONTAINER[`${key}_NORD`] ?? 0;
-                    const inlandPerContainer = COSTS.INLAND_CONTAINER[key] ?? 0;
-                    
-                    // 🔧 FORMULA CORRETTA:
-                    // unitsPerContainer = pallet_per_container * units_per_pallet
+                    const freightPerContainer = COSTS.FREIGHT_MARE_CONTAINER[containerKey] || COSTS.FREIGHT_MARE_CONTAINER[`${key}_NORD`] || 0;
                     const unitsPerContainer = COSTS.PALLETS_PER_CONTAINER * unitsPerPallet;
-                    
-                    freightPerUnit = freightPerContainer / unitsPerContainer;
-                    inlandPerUnit = inlandPerContainer / unitsPerContainer;
-                    
-                    // Assicurazione sul valore della merce
-                    const insurancePerUnit = purchasePrice * COSTS.INSURANCE;
-                    freightPerUnit += insurancePerUnit;
-                    
-                    calculationNote = `Container: ${freightPerContainer.toFixed(2)}€ / (${COSTS.PALLETS_PER_CONTAINER} plt × ${unitsPerPallet.toFixed(2)} u/plt) = ${(freightPerContainer / unitsPerContainer).toFixed(4)}€/u`;
+                    freightPerUnit = freightPerContainer / unitsPerContainer + purchasePrice * COSTS.INSURANCE;
+                    inlandPerUnit = (COSTS.INLAND_CONTAINER[key] || 0) / unitsPerContainer;
                 }
 
                 const palletPerUnit = COSTS.PALLET_COST / unitsPerPallet;
-
-                // AIEM
                 const aiemRate = aiem / 100;
-                let aiemPerUnit = 0;
-                if (aiemRate > 0) {
-                    const priceForAiem = purchasePrice + freightPerUnit + inlandPerUnit + palletPerUnit;
-                    aiemPerUnit = priceForAiem * aiemRate;
-                }
-
+                const aiemPerUnit = aiemRate > 0 ? (purchasePrice + freightPerUnit + inlandPerUnit + palletPerUnit) * aiemRate : 0;
                 const step1 = purchasePrice + freightPerUnit + inlandPerUnit + palletPerUnit + aiemPerUnit;
 
-                // Warehouse
-                let warehousePerUnit = 0;
-                let warehouseDetail = null;
-
+                let warehousePerUnit = 0, warehouseDetail = null;
                 if (ubicazione === "MTO") {
-                    warehousePerUnit = (COSTS.MTO_PER_PLT[temperature] ?? 8.16) / unitsPerPallet;
+                    warehousePerUnit = (COSTS.MTO_PER_PLT[temperature] || 8.16) / unitsPerPallet;
                     warehouseDetail = { type: "MTO", total: warehousePerUnit };
                 } else if (ubicazione === "MTS") {
-                    const dep = (COSTS.MTS_DEPOSITO[temperature] ?? 14.4228) / unitsPerPallet;
-                    const inbound = (COSTS.MTS_INBOUND[temperature] ?? 2.5755) / unitsPerPallet;
-                    const pickDiv = uomCfg.pickingDivisor({ qtyPerBox, boxPerPallet });
-                    const picking = (COSTS.MTS_PICKING[temperature] ?? 0.303) / pickDiv;
+                    const dep = (COSTS.MTS_DEPOSITO[temperature] || 14.4228) / unitsPerPallet;
+                    const inbound = (COSTS.MTS_INBOUND[temperature] || 2.5755) / unitsPerPallet;
+                    const picking = (COSTS.MTS_PICKING[temperature] || 0.303) / (uomCfg.pickingDivisor({ qtyPerBox: parseFloat(qtyPerBox) || 0, boxPerPallet: parseFloat(boxPerPallet) || 0 }) || 1);
                     warehousePerUnit = dep + inbound + picking;
                     warehouseDetail = { type: "MTS", dep, inbound, picking, total: warehousePerUnit };
                 } else {
                     warehouseDetail = { type: "FOR", total: 0 };
                 }
 
-                const step2 = step1 + warehousePerUnit;
-
                 results[key] = {
-                    purchasePrice,
-                    freightPerUnit: parseFloat(freightPerUnit.toFixed(4)),
-                    inlandPerUnit: parseFloat(inlandPerUnit.toFixed(4)),
-                    palletPerUnit: parseFloat(palletPerUnit.toFixed(4)),
-                    aiemPerUnit: parseFloat(aiemPerUnit.toFixed(4)),
-                    aiemRate: aiemRate,
-                    step1: parseFloat(step1.toFixed(4)),
-                    warehousePerUnit: parseFloat(warehousePerUnit.toFixed(4)),
-                    warehouseDetail,
-                    step2: parseFloat(step2.toFixed(4)),
-                    uomLabel: uom,
-                    calculationNote,
+                    purchasePrice, freightPerUnit: parseFloat(freightPerUnit.toFixed(4)), inlandPerUnit: parseFloat(inlandPerUnit.toFixed(4)),
+                    palletPerUnit: parseFloat(palletPerUnit.toFixed(4)), aiemPerUnit: parseFloat(aiemPerUnit.toFixed(4)), aiemRate,
+                    step1: parseFloat(step1.toFixed(4)), warehousePerUnit: parseFloat(warehousePerUnit.toFixed(4)), warehouseDetail,
+                    step2: parseFloat((step1 + warehousePerUnit).toFixed(4)), uomLabel: uom,
                 };
             });
-
             return results;
         }
 
-        // ─── APP ───────────────────────────────────────────────────────────
+        // Componente principale
         function App() {
-            const [form, setForm] = useState({
-                purchasePrice: "",
-                qtyPerBox: "",
-                boxPerPallet: "",
-                uom: "PCS",
-                temperature: "DRY",
-                transport: "GOMMA",
-                aiem: "4",
-                area: "NORD",
-                ubicazione: "MTO",
-            });
+            const [form, setForm] = useState({ purchasePrice: "", qtyPerBox: "", boxPerPallet: "", uom: "PCS", temperature: "DRY", transport: "GOMMA", aiem: "4", area: "NORD", ubicazione: "MTO" });
             const [isSelected, setIsSelected] = useState({ GC: true, TF: true, LAN: false, FUE: false });
             const [results, setResults] = useState(null);
-            const [calculated, setCalculated] = useState(false);
 
-            const handleChange = (field, value) => {
-                setForm((f) => ({ ...f, [field]: value }));
-                setCalculated(false);
-            };
-
-            const handleCalculate = useCallback(() => {
-                const r = calculateStandardCost({
-                    purchasePrice: parseFloat(form.purchasePrice),
-                    uom: form.uom,
-                    qtyPerBox: form.qtyPerBox,
-                    boxPerPallet: parseFloat(form.boxPerPallet),
-                    temperature: form.temperature,
-                    transport: form.transport,
-                    aiem: parseFloat(form.aiem) || 0,
-                    area: form.area,
-                    isSelected,
-                    ubicazione: form.ubicazione,
-                });
-                setResults(r);
-                setCalculated(true);
-            }, [form, isSelected]);
+            const handleChange = (field, value) => { setForm(f => ({ ...f, [field]: value })); setResults(null); };
+            const handleCalculate = () => { setResults(calculateCost({ ...form, purchasePrice: parseFloat(form.purchasePrice) || 0, boxPerPallet: parseFloat(form.boxPerPallet) || 0, qtyPerBox: form.qtyPerBox, aiem: parseFloat(form.aiem) || 0, isSelected })); };
 
             const uomCfg = UOM_CONFIG[form.uom];
-            const canCalculate = form.purchasePrice && form.boxPerPallet &&
-                parseFloat(form.purchasePrice) > 0 &&
-                parseFloat(form.boxPerPallet) > 0 &&
-                (!uomCfg.showQty || (form.qtyPerBox && parseFloat(form.qtyPerBox) > 0)) &&
-                Object.values(isSelected).some(Boolean);
-
-            const tempColor = TEMPERATURE_OPTIONS.find((t) => t.value === form.temperature)?.color || "#C4873B";
+            const canCalc = form.purchasePrice && form.boxPerPallet && (!uomCfg.showQty || form.qtyPerBox) && Object.values(isSelected).some(v => v);
+            const tempColor = TEMP_OPTIONS.find(t => t.value === form.temperature)?.color || "#C4873B";
 
             return (
-                <div style={{
-                    minHeight: "100vh",
-                    background: "linear-gradient(135deg, #0F1923 0%, #1A2B3C 50%, #0D1F2D 100%)",
-                    fontFamily: "'Georgia', 'Times New Roman', serif",
-                    color: "#E8E0D0",
-                }}>
-                    {/* Header */}
-                    <div style={{
-                        borderBottom: "1px solid rgba(196,135,59,0.3)",
-                        padding: "24px 40px",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "20px",
-                        background: "rgba(0,0,0,0.2)",
-                        flexWrap: "wrap",
-                    }}>
-                        <div style={{
-                            width: "44px", height: "44px",
-                            background: `linear-gradient(135deg, ${tempColor}, rgba(196,135,59,0.4))`,
-                            borderRadius: "8px",
-                            display: "flex", alignItems: "center", justifyContent: "center",
-                            fontSize: "22px",
-                            boxShadow: `0 0 20px ${tempColor}40`,
-                        }}>🧮</div>
-                        <div>
-                            <div style={{ fontSize: "11px", letterSpacing: "3px", color: "#C4873B", textTransform: "uppercase", marginBottom: "2px" }}>
-                                COMIT · Inalca Food & Beverage
+                <div style={{ minHeight: "100vh", background: "linear-gradient(135deg, #0F1923 0%, #1A2B3C 100%)", color: "#E8E0D0", fontFamily: "'Georgia', serif" }}>
+                    <div style={{ borderBottom: "1px solid rgba(196,135,59,0.3)", padding: "20px 40px", background: "rgba(0,0,0,0.2)" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "20px" }}>
+                            <div style={{ width: "44px", height: "44px", background: `linear-gradient(135deg, ${tempColor}, #1A3A4A)`, borderRadius: "8px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "22px" }}>🧮</div>
+                            <div>
+                                <div style={{ fontSize: "11px", letterSpacing: "3px", color: "#C4873B" }}>COMIT · Inalca Food & Beverage</div>
+                                <div style={{ fontSize: "22px", fontWeight: "bold" }}>Standard Cost Estimator · Canarie</div>
                             </div>
-                            <div style={{ fontSize: "22px", fontWeight: "bold", letterSpacing: "0.5px" }}>
-                                Standard Cost Estimator
-                            </div>
-                            <div style={{ fontSize: "10px", color: "rgba(232,224,208,0.4)", marginTop: "2px" }}>
-                                Isole Canarie
-                            </div>
-                        </div>
-                        <div style={{ marginLeft: "auto", fontSize: "11px", color: "rgba(255,255,255,0.35)", textAlign: "right" }}>
-                            Calcolo preventivo<br />per nuovi prodotti
                         </div>
                     </div>
 
-                    <div style={{ maxWidth: "900px", margin: "0 auto", padding: "32px 20px" }}>
-                        {/* Banner */}
-                        <div style={{
-                            background: "rgba(196,135,59,0.08)",
-                            border: "1px solid rgba(196,135,59,0.2)",
-                            borderRadius: "10px",
-                            padding: "14px 20px",
-                            marginBottom: "28px",
-                            fontSize: "13px",
-                            color: "rgba(232,224,208,0.7)",
-                            lineHeight: "1.6",
-                        }}>
-                            ✦ Inserisci i dati del nuovo prodotto per stimare lo <strong style={{ color: "#E8E0D0" }}>Standard Cost 2</strong> —
-                            il costo finale che includerà trasporto, dogana, AIEM e gestione magazzino.
-                        </div>
-
-                        {/* ROW 1: UOM + UBICAZIONE */}
+                    <div style={{ maxWidth: "900px", margin: "0 auto", padding: "30px 20px" }}>
+                        {/* Riga 1: UOM + Ubicazione */}
                         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px", marginBottom: "20px" }}>
-                            <FormSection title="Unità di Misura (UOM)" icon="📐">
+                            <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "10px", padding: "18px" }}>
+                                <div style={{ fontSize: "10px", color: "#C4873B", marginBottom: "12px" }}>📐 UNITÀ DI MISURA</div>
                                 <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "8px", marginBottom: "12px" }}>
-                                    {Object.entries(UOM_CONFIG).map(([key, cfg]) => (
-                                        <button key={key} onClick={() => handleChange("uom", key)}
-                                            style={{ padding: "10px 6px", background: form.uom === key ? `${tempColor}25` : "rgba(255,255,255,0.04)", border: `2px solid ${form.uom === key ? tempColor : "rgba(255,255,255,0.09)"}`, borderRadius: "8px", color: form.uom === key ? "#EEE" : "rgba(221,213,200,0.55)", cursor: "pointer", fontFamily: "inherit", fontSize: "11px", fontWeight: form.uom === key ? "bold" : "normal", textAlign: "center" }}>
-                                            <div style={{ fontSize: "16px", marginBottom: "3px" }}>{cfg.icon}</div>
-                                            {cfg.label.split(" —")[0]}
-                                        </button>
+                                    {Object.entries(UOM_CONFIG).map(([k, c]) => (
+                                        <button key={k} onClick={() => handleChange("uom", k)} style={{ padding: "10px", background: form.uom === k ? `${tempColor}25` : "rgba(255,255,255,0.04)", border: `2px solid ${form.uom === k ? tempColor : "rgba(255,255,255,0.1)"}`, borderRadius: "8px", color: form.uom === k ? "#EEE" : "#aaa", cursor: "pointer" }}>{c.icon} {c.label.split(" —")[0]}</button>
                                     ))}
                                 </div>
-                                <div style={{ padding: "8px 11px", background: `${tempColor}0E`, border: `1px solid ${tempColor}28`, borderRadius: "6px", fontSize: "10px", color: "rgba(221,213,200,0.6)" }}>
-                                    {form.uom === "PCS" && "Prezzo per singolo pezzo. Divisore = pz/box × box/pallet"}
-                                    {form.uom === "BOX" && "Prezzo per cartone. Divisore = box/pallet"}
-                                    {form.uom === "KG" && "Prezzo per kg. Divisore = kg/cartone × cartoni/pallet"}
-                                </div>
-                            </FormSection>
+                            </div>
 
-                            <FormSection title="Gestione magazzino" icon="🏭">
+                            <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "10px", padding: "18px" }}>
+                                <div style={{ fontSize: "10px", color: "#C4873B", marginBottom: "12px" }}>🏭 GESTIONE MAGAZZINO</div>
                                 <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                                    {Object.entries(UBIC_CONFIG).map(([key, cfg]) => (
-                                        <button key={key} onClick={() => handleChange("ubicazione", key)}
-                                            style={{ padding: "10px 12px", background: form.ubicazione === key ? `${cfg.color}22` : "rgba(255,255,255,0.04)", border: `1px solid ${form.ubicazione === key ? cfg.color : "rgba(255,255,255,0.09)"}`, borderRadius: "8px", color: form.ubicazione === key ? "#EEE" : "rgba(221,213,200,0.55)", cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
-                                            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "2px" }}>
-                                                <span style={{ fontSize: "14px" }}>{cfg.icon}</span>
-                                                <span style={{ fontSize: "12px", fontWeight: form.ubicazione === key ? "bold" : "normal" }}>{cfg.label}</span>
-                                            </div>
-                                            <div style={{ fontSize: "10px", color: "rgba(221,213,200,0.45)", paddingLeft: "22px" }}>{cfg.desc}</div>
+                                    {Object.entries(UBIC_CONFIG).map(([k, c]) => (
+                                        <button key={k} onClick={() => handleChange("ubicazione", k)} style={{ padding: "10px", background: form.ubicazione === k ? `${c.color}22` : "rgba(255,255,255,0.04)", border: `1px solid ${form.ubicazione === k ? c.color : "rgba(255,255,255,0.1)"}`, borderRadius: "8px", textAlign: "left", cursor: "pointer" }}>
+                                            <span>{c.icon} {c.label}</span>
+                                            <div style={{ fontSize: "10px", color: "#888" }}>{c.desc}</div>
                                         </button>
                                     ))}
                                 </div>
-                            </FormSection>
+                            </div>
                         </div>
 
-                        {/* ROW 2 */}
+                        {/* Riga 2: Prezzo + Temperatura + Trasporto */}
                         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px", marginBottom: "20px" }}>
-                            <FormSection title="Prezzo & Contenenza" icon="📦">
-                                <InputField label={uomCfg.priceLabel} placeholder="es. 1.25" value={form.purchasePrice} onChange={(v) => handleChange("purchasePrice", v)} type="number" suffix="€" />
-                                {uomCfg.showQty && (
-                                    <InputField label={uomCfg.qtyLabel} placeholder={uomCfg.qtyPlaceholder} value={form.qtyPerBox} onChange={(v) => handleChange("qtyPerBox", v)} type="number" suffix={uomCfg.qtySuffix} />
-                                )}
-                                <InputField label="Cartoni per pallet" placeholder="es. 48" value={form.boxPerPallet} onChange={(v) => handleChange("boxPerPallet", v)} type="number" suffix="crt"
-                                    hint={uomCfg.hint({ qtyPerBox: form.qtyPerBox, boxPerPallet: form.boxPerPallet })} />
-                            </FormSection>
+                            <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "10px", padding: "18px" }}>
+                                <div style={{ fontSize: "10px", color: "#C4873B", marginBottom: "12px" }}>📦 PREZZO & CONTENENZA</div>
+                                <input type="number" placeholder={uomCfg.priceLabel} value={form.purchasePrice} onChange={e => handleChange("purchasePrice", e.target.value)} style={{ width: "100%", padding: "10px", marginBottom: "10px", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "6px", color: "#E8E0D0" }} />
+                                {uomCfg.showQty && <input type="number" placeholder={uomCfg.qtyLabel} value={form.qtyPerBox} onChange={e => handleChange("qtyPerBox", e.target.value)} style={{ width: "100%", padding: "10px", marginBottom: "10px", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "6px", color: "#E8E0D0" }} />}
+                                <input type="number" placeholder="Cartoni per pallet" value={form.boxPerPallet} onChange={e => handleChange("boxPerPallet", e.target.value)} style={{ width: "100%", padding: "10px", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "6px", color: "#E8E0D0" }} />
+                                <input type="number" placeholder="AIEM % (0 = esenzione)" value={form.aiem} onChange={e => handleChange("aiem", e.target.value)} style={{ width: "100%", padding: "10px", marginTop: "10px", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "6px", color: "#E8E0D0" }} />
+                            </div>
 
-                            <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-                                <FormSection title="Temperatura" icon="🌡️">
-                                    <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                                        {TEMPERATURE_OPTIONS.map((opt) => (
-                                            <RadioCard key={opt.value} label={opt.label} selected={form.temperature === opt.value} color={opt.color} onClick={() => handleChange("temperature", opt.value)} />
-                                        ))}
-                                    </div>
-                                </FormSection>
+                            <div>
+                                <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "10px", padding: "18px", marginBottom: "20px" }}>
+                                    <div style={{ fontSize: "10px", color: "#C4873B", marginBottom: "12px" }}>🌡️ TEMPERATURA</div>
+                                    {TEMP_OPTIONS.map(opt => (
+                                        <button key={opt.value} onClick={() => handleChange("temperature", opt.value)} style={{ width: "100%", padding: "10px", marginBottom: "8px", background: form.temperature === opt.value ? `${opt.color}25` : "rgba(255,255,255,0.04)", border: `1px solid ${form.temperature === opt.value ? opt.color : "rgba(255,255,255,0.1)"}`, borderRadius: "6px", cursor: "pointer", textAlign: "left", color: "#E8E0D0" }}>{opt.label}</button>
+                                    ))}
+                                </div>
 
-                                <FormSection title="Modalità Trasporto" icon="🚚">
-                                    <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                                        {TRANSPORT_OPTIONS.map((opt) => (
-                                            <RadioCard key={opt.value} label={opt.label} desc={opt.desc} selected={form.transport === opt.value} color="#4A8C9B" onClick={() => handleChange("transport", opt.value)} disabled={opt.value === "MARE" && form.temperature === "FROZEN"} />
-                                        ))}
-                                    </div>
+                                <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "10px", padding: "18px" }}>
+                                    <div style={{ fontSize: "10px", color: "#C4873B", marginBottom: "12px" }}>🚚 TRASPORTO</div>
+                                    {TRANSPORT_OPTIONS.map(opt => (
+                                        <button key={opt.value} onClick={() => handleChange("transport", opt.value)} disabled={opt.value === "MARE" && form.temperature === "FROZEN"} style={{ width: "100%", padding: "10px", marginBottom: "8px", background: form.transport === opt.value ? "#4A8C9B25" : "rgba(255,255,255,0.04)", border: `1px solid ${form.transport === opt.value ? "#4A8C9B" : "rgba(255,255,255,0.1)"}`, borderRadius: "6px", cursor: "pointer", textAlign: "left", color: "#E8E0D0", opacity: opt.value === "MARE" && form.temperature === "FROZEN" ? 0.5 : 1 }}>{opt.label}</button>
+                                    ))}
                                     {form.transport === "MARE" && (
                                         <div style={{ marginTop: "10px" }}>
-                                            <div style={{ fontSize: "11px", color: "rgba(232,224,208,0.5)", marginBottom: "6px" }}>AREA FORNITORE</div>
+                                            <div style={{ fontSize: "11px", marginBottom: "6px" }}>AREA FORNITORE</div>
                                             <div style={{ display: "flex", gap: "8px" }}>
-                                                {["NORD", "SUD"].map((a) => (
-                                                    <button key={a} onClick={() => handleChange("area", a)} style={{ flex: 1, padding: "8px", background: form.area === a ? "rgba(74,140,155,0.25)" : "rgba(255,255,255,0.04)", border: `1px solid ${form.area === a ? "#4A8C9B" : "rgba(255,255,255,0.1)"}`, borderRadius: "6px", color: form.area === a ? "#7EC8D8" : "rgba(232,224,208,0.6)", cursor: "pointer", fontSize: "12px" }}>{a}</button>
-                                                ))}
+                                                {["NORD", "SUD"].map(a => <button key={a} onClick={() => handleChange("area", a)} style={{ flex: 1, padding: "8px", background: form.area === a ? "#4A8C9B25" : "rgba(255,255,255,0.04)", border: `1px solid ${form.area === a ? "#4A8C9B" : "rgba(255,255,255,0.1)"}`, borderRadius: "6px", cursor: "pointer" }}>{a}</button>)}
                                             </div>
                                         </div>
                                     )}
-                                </FormSection>
+                                </div>
                             </div>
                         </div>
 
-                        {/* AIEM */}
-                        <FormSection title="AIEM (Imposta Canarie)" icon="🏷️">
-                            <InputField label="Aliquota AIEM %" placeholder="es. 4 (0 = esenzione)" value={form.aiem} onChange={(v) => handleChange("aiem", v)} type="number" suffix="%" 
-                                hint={parseFloat(form.aiem) === 0 ? "✓ AIEM esentato (0%) — nessuna imposta applicata" : "Inserisci l'aliquota specifica per la categoria merceologica"} />
-                        </FormSection>
-
-                        {/* Islands */}
-                        <FormSection title="Destinazioni" icon="🏝️">
+                        {/* Isole */}
+                        <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "10px", padding: "18px", marginBottom: "20px" }}>
+                            <div style={{ fontSize: "10px", color: "#C4873B", marginBottom: "12px" }}>🏝️ DESTINAZIONI</div>
                             <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: "10px" }}>
                                 {ISLANDS.map(({ key, label, flag }) => (
-                                    <button key={key} onClick={() => { setIsSelected((s) => ({ ...s, [key]: !s[key] })); setCalculated(false); }} style={{ padding: "12px 8px", background: isSelected[key] ? "rgba(196,135,59,0.18)" : "rgba(255,255,255,0.04)", border: `2px solid ${isSelected[key] ? "#C4873B" : "rgba(255,255,255,0.1)"}`, borderRadius: "8px", color: isSelected[key] ? "#E8C97A" : "rgba(232,224,208,0.5)", cursor: "pointer", fontFamily: "inherit", textAlign: "center" }}>
-                                        <div style={{ fontSize: "20px", marginBottom: "4px" }}>{flag}</div>
-                                        <div style={{ fontWeight: "bold", fontSize: "11px" }}>{key}</div>
-                                        <div style={{ fontSize: "10px", opacity: 0.8 }}>{label}</div>
+                                    <button key={key} onClick={() => setIsSelected(s => ({ ...s, [key]: !s[key] }))} style={{ padding: "12px", background: isSelected[key] ? "rgba(196,135,59,0.18)" : "rgba(255,255,255,0.04)", border: `2px solid ${isSelected[key] ? "#C4873B" : "rgba(255,255,255,0.1)"}`, borderRadius: "8px", cursor: "pointer", textAlign: "center", color: isSelected[key] ? "#E8C97A" : "#aaa" }}>
+                                        <div style={{ fontSize: "20px" }}>{flag}</div>
+                                        <div style={{ fontSize: "11px", fontWeight: "bold" }}>{label}</div>
                                     </button>
                                 ))}
                             </div>
-                        </FormSection>
+                        </div>
 
-                        {/* Calculate Button */}
-                        <button onClick={handleCalculate} disabled={!canCalculate} style={{ width: "100%", padding: "16px", marginTop: "20px", background: canCalculate ? `linear-gradient(135deg, ${tempColor}, rgba(196,135,59,0.7))` : "rgba(255,255,255,0.05)", border: canCalculate ? "none" : "1px solid rgba(255,255,255,0.1)", borderRadius: "10px", color: canCalculate ? "#fff" : "rgba(255,255,255,0.3)", fontSize: "15px", fontWeight: "bold", letterSpacing: "1px", cursor: canCalculate ? "pointer" : "not-allowed", boxShadow: canCalculate ? `0 8px 24px ${tempColor}40` : "none" }}>
-                            {canCalculate ? "✦ CALCOLA STANDARD COST" : "Completa i campi per calcolare"}
-                        </button>
+                        {/* Bottone Calcola */}
+                        <button onClick={handleCalculate} disabled={!canCalc} style={{ width: "100%", padding: "16px", background: canCalc ? `linear-gradient(135deg, ${tempColor}, #1A3A4A)` : "rgba(255,255,255,0.05)", border: "none", borderRadius: "10px", color: canCalc ? "#fff" : "#666", fontSize: "15px", fontWeight: "bold", cursor: canCalc ? "pointer" : "not-allowed", marginBottom: "30px" }}>✦ CALCOLA STANDARD COST</button>
 
-                        {/* Results */}
-                        {calculated && results && (
-                            <div style={{ marginTop: "32px" }}>
-                                <div style={{ fontSize: "11px", letterSpacing: "3px", color: "#C4873B", textTransform: "uppercase", marginBottom: "16px" }}>✦ Risultati Stima Standard Cost 2</div>
+                        {/* Risultati */}
+                        {results && (
+                            <div>
+                                <div style={{ fontSize: "11px", color: "#C4873B", marginBottom: "16px" }}>✦ RISULTATI</div>
                                 <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: "16px" }}>
                                     {ISLANDS.filter(({ key }) => isSelected[key] && results[key]).map(({ key, label, flag }) => {
                                         const r = results[key];
-                                        if (!r) return null;
                                         return (
-                                            <div key={key} style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(196,135,59,0.25)", borderRadius: "12px", padding: "20px", position: "relative" }}>
-                                                <div style={{ position: "absolute", top: 0, right: 0, width: "80px", height: "80px", background: `radial-gradient(circle, ${tempColor}15, transparent)`, borderRadius: "0 12px 0 80px" }} />
+                                            <div key={key} style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(196,135,59,0.25)", borderRadius: "12px", padding: "20px" }}>
                                                 <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "16px" }}>
                                                     <span style={{ fontSize: "20px" }}>{flag}</span>
-                                                    <div><div style={{ fontSize: "14px", fontWeight: "bold" }}>{label}</div><div style={{ fontSize: "10px", color: "rgba(232,224,208,0.4)" }}>{key}</div></div>
+                                                    <div><div style={{ fontSize: "14px", fontWeight: "bold" }}>{label}</div></div>
                                                 </div>
-                                                <CostRow label="Prezzo acquisto" value={r.purchasePrice} />
-                                                <CostRow label="Trasporto / unità" value={r.freightPerUnit} />
-                                                {r.inlandPerUnit > 0 && <CostRow label="Inland + Dogana" value={r.inlandPerUnit} />}
-                                                <CostRow label="Pallet / unità" value={r.palletPerUnit} />
-                                                {r.aiemPerUnit > 0 && <CostRow label={`AIEM (${(r.aiemRate * 100).toFixed(1)}%)`} value={r.aiemPerUnit} />}
-                                                <div style={{ borderTop: "1px solid rgba(196,135,59,0.2)", margin: "10px 0 8px" }} />
-                                                <CostRow label="Standard Cost Step 1" value={r.step1} bold accent />
-                                                
-                                                {r.warehouseDetail?.type === "MTO" && <CostRow label="MTO — In+Stock+Out" value={r.warehouseDetail.total} />}
-                                                {r.warehouseDetail?.type === "FOR" && <div style={{ fontSize: "10px", color: "#6A9B4A", padding: "4px 0", fontStyle: "italic" }}>🚛 FOR — Nessun costo di handling</div>}
-                                                {r.warehouseDetail?.type === "MTS" && (<>
-                                                    <CostRow label="MTS — Deposito" value={r.warehouseDetail.dep} />
-                                                    <CostRow label="MTS — Inbound" value={r.warehouseDetail.inbound} />
-                                                    <CostRow label="MTS — Picking" value={r.warehouseDetail.picking} />
-                                                </>)}
-
-                                                <div style={{ marginTop: "12px", background: `linear-gradient(135deg, ${tempColor}20, rgba(0,0,0,0.2))`, border: `1px solid ${tempColor}50`, borderRadius: "8px", padding: "12px 14px" }}>
-                                                    <div style={{ fontSize: "10px", color: "rgba(232,224,208,0.5)", letterSpacing: "2px", marginBottom: "4px" }}>STANDARD COST 2</div>
+                                                <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", fontSize: "12px" }}><span>Prezzo acquisto</span><span>€ {r.purchasePrice.toFixed(4)}</span></div>
+                                                <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", fontSize: "12px" }}><span>Trasporto</span><span>€ {r.freightPerUnit.toFixed(4)}</span></div>
+                                                {r.inlandPerUnit > 0 && <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", fontSize: "12px" }}><span>Inland</span><span>€ {r.inlandPerUnit.toFixed(4)}</span></div>}
+                                                <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", fontSize: "12px" }}><span>Pallet</span><span>€ {r.palletPerUnit.toFixed(4)}</span></div>
+                                                {r.aiemPerUnit > 0 && <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", fontSize: "12px" }}><span>AIEM ({(r.aiemRate * 100).toFixed(1)}%)</span><span>€ {r.aiemPerUnit.toFixed(4)}</span></div>}
+                                                <div style={{ borderTop: "1px solid rgba(196,135,59,0.2)", margin: "10px 0" }} />
+                                                <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", fontSize: "13px", fontWeight: "bold" }}><span>Standard Cost 1</span><span>€ {r.step1.toFixed(4)}</span></div>
+                                                {r.warehouseDetail?.type === "MTO" && <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", fontSize: "12px" }}><span>MTO Handling</span><span>€ {r.warehouseDetail.total.toFixed(4)}</span></div>}
+                                                {r.warehouseDetail?.type === "MTS" && (<><div style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", fontSize: "12px" }}><span>Deposito</span><span>€ {r.warehouseDetail.dep.toFixed(4)}</span></div><div style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", fontSize: "12px" }}><span>Inbound</span><span>€ {r.warehouseDetail.inbound.toFixed(4)}</span></div><div style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", fontSize: "12px" }}><span>Picking</span><span>€ {r.warehouseDetail.picking.toFixed(4)}</span></div></>)}
+                                                <div style={{ marginTop: "12px", background: `linear-gradient(135deg, ${tempColor}20, rgba(0,0,0,0.2))`, border: `1px solid ${tempColor}50`, borderRadius: "8px", padding: "12px" }}>
+                                                    <div style={{ fontSize: "10px", color: "#aaa" }}>STANDARD COST 2</div>
                                                     <div style={{ fontSize: "24px", fontWeight: "bold", color: "#E8C97A" }}>€ {r.step2.toFixed(4)}</div>
-                                                    <div style={{ fontSize: "10px", color: "rgba(232,224,208,0.4)", marginTop: "4px" }}>per {r.uomLabel} · costo finale stimato</div>
+                                                    <div style={{ fontSize: "10px", color: "#aaa" }}>per {r.uomLabel}</div>
                                                 </div>
-                                                {r.calculationNote && (
-                                                    <div style={{ fontSize: "9px", color: "rgba(232,224,208,0.3)", marginTop: "8px", padding: "4px", borderTop: "1px solid rgba(255,255,255,0.05)", fontFamily: "monospace" }}>
-                                                        {r.calculationNote}
-                                                    </div>
-                                                )}
                                             </div>
                                         );
                                     })}
-                                </div>
-                                <div style={{ marginTop: "20px", padding: "14px 18px", background: "rgba(255,200,50,0.05)", border: "1px solid rgba(255,200,50,0.15)", borderRadius: "8px", fontSize: "11px", color: "rgba(232,224,208,0.45)" }}>
-                                    ⚠️ <strong>Nota:</strong> Stima basata sul modello Standard Cost ufficiale. Trasporto mare: costo container ÷ (24 pallet × unità per pallet).
                                 </div>
                             </div>
                         )}
@@ -471,21 +270,7 @@
             );
         }
 
-        // ─── SUB-COMPONENTS ──────────────────────────────────────────────────────────
-        function FormSection({ title, icon, children }) {
-            return (
-                <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "10px", padding: "18px" }}>
-                    <div style={{ fontSize: "10px", letterSpacing: "2px", color: "rgba(196,135,59,0.8)", textTransform: "uppercase", marginBottom: "14px", display: "flex", alignItems: "center", gap: "6px" }}>
-                        <span>{icon}</span>{title}
-                    </div>
-                    {children}
-                </div>
-            );
-        }
-
-        function InputField({ label, placeholder, value, onChange, type = "text", suffix, hint }) {
-            return (
-                <div style={{ marginBottom: "12px" }}>
-                    <label style={{ display: "block", fontSize: "11px", color: "rgba(232,224,208,0.55)", marginBottom: "6px" }}>{label}</label>
-                    <div style={{ position: "relative" }}>
-                        <
+        ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+    </script>
+</body>
+</html>
