@@ -30,7 +30,6 @@
     min-height: 100vh;
   }
 
-  /* HEADER */
   .header {
     border-bottom: 1px solid rgba(196,135,59,0.25);
     padding: 20px 40px;
@@ -50,10 +49,8 @@
   .header-eyebrow { font-size: 10px; letter-spacing: 3px; color: var(--gold); text-transform: uppercase; }
   .header-title   { font-size: 20px; font-weight: bold; margin-top: 2px; }
 
-  /* MAIN */
   .main { max-width: 920px; margin: 0 auto; padding: 30px 20px 60px; }
 
-  /* SECTION BOX */
   .box {
     background: rgba(255,255,255,0.03);
     border: 1px solid var(--border);
@@ -66,12 +63,10 @@
     display: flex; align-items: center; gap: 6px;
   }
 
-  /* GRID LAYOUTS */
   .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
   .grid-3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; }
   .grid-4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; }
 
-  /* BUTTONS */
   .btn-toggle {
     padding: 10px 8px;
     background: rgba(255,255,255,0.04);
@@ -111,7 +106,6 @@
   }
   .btn-area.active { background: rgba(74,140,155,0.2); border-color: #4A8C9B; color: #7EC8D8; }
 
-  /* ISLANDS */
   .island-btn {
     padding: 14px 8px;
     background: rgba(255,255,255,0.04);
@@ -125,7 +119,6 @@
   .island-key  { font-size: 11px; font-weight: bold; letter-spacing: 1px; }
   .island-name { font-size: 10px; opacity: 0.7; margin-top: 2px; }
 
-  /* INPUTS */
   .field { margin-bottom: 10px; }
   .field label { display: block; font-size: 11px; color: var(--muted); margin-bottom: 5px; }
   .field input {
@@ -137,8 +130,13 @@
     transition: border-color 0.2s;
   }
   .field input:focus { border-color: rgba(196,135,59,0.5); }
+  .field input.small-input { width: 120px; display: inline-block; margin-right: 8px; }
+  
+  .inline-fields { display: flex; gap: 16px; margin-top: 12px; flex-wrap: wrap; }
+  .inline-field { flex: 1; min-width: 120px; }
+  .inline-field label { font-size: 10px; margin-bottom: 4px; }
+  .inline-field input { font-size: 13px; padding: 7px 10px; }
 
-  /* CALC BTN */
   #calc-btn {
     width: 100%; padding: 15px;
     background: linear-gradient(135deg, var(--gold), #1A4060);
@@ -150,7 +148,6 @@
   }
   #calc-btn:disabled { background: rgba(255,255,255,0.05); color: var(--dim); cursor: not-allowed; box-shadow: none; }
 
-  /* RESULTS */
   #results { display: none; }
   #results.visible { display: block; }
   .results-label { font-size: 10px; letter-spacing: 3px; color: var(--gold); text-transform: uppercase; margin-bottom: 14px; }
@@ -180,7 +177,6 @@
   .sc2-value { font-size: 26px; font-weight: bold; color: #E8C97A; font-variant-numeric: tabular-nums; margin-top: 3px; }
   .sc2-sub   { font-size: 10px; color: var(--dim); margin-top: 3px; }
 
-  /* WARN */
   .warn {
     font-size: 11px; color: #E08040;
     padding: 7px 10px;
@@ -191,7 +187,6 @@
   }
   .warn.visible { display: block; }
 
-  /* UOM hint */
   .uom-hint {
     font-size: 10px; color: var(--dim);
     padding: 7px 10px;
@@ -201,7 +196,6 @@
     line-height: 1.5;
   }
 
-  /* DISCLAIMER */
   .disclaimer {
     margin-top: 20px; padding: 12px 16px;
     background: rgba(255,200,80,0.04);
@@ -215,12 +209,12 @@
     .grid-4 { grid-template-columns: repeat(2,1fr); }
     .header { padding: 16px 20px; }
     .main   { padding: 20px 14px 40px; }
+    .inline-fields { flex-direction: column; gap: 8px; }
   }
 </style>
 </head>
 <body>
 
-<!-- HEADER -->
 <div class="header">
   <div class="header-icon">🧮</div>
   <div>
@@ -231,9 +225,7 @@
 
 <div class="main">
 
-  <!-- ROW 1: UOM + UBICAZIONE -->
   <div class="grid-2">
-    <!-- UOM -->
     <div class="box">
       <div class="box-label">📐 Unità di Misura (UOM)</div>
       <div class="grid-3" id="uom-btns">
@@ -246,7 +238,6 @@
       </div>
     </div>
 
-    <!-- UBICAZIONE -->
     <div class="box">
       <div class="box-label">🏭 Gestione Magazzino</div>
       <button class="btn-radio active" data-ubic="MTO" onclick="setUbic(this)" style="border-color:#4A8C9B; background:rgba(74,140,155,0.18); color:#EEE;">
@@ -264,9 +255,7 @@
     </div>
   </div>
 
-  <!-- ROW 2: PREZZO & CONTENENZA + TEMPERATURA + TRASPORTO -->
   <div class="grid-2">
-    <!-- Left: price + fields -->
     <div class="box">
       <div class="box-label">📦 Prezzo & Contenenza</div>
 
@@ -290,7 +279,6 @@
         <input type="number" id="aiem" value="4" placeholder="es. 4" oninput="resetResults()">
       </div>
 
-      <!-- TASSA ALCOLICI -->
       <div style="margin-top:10px;border-top:1px solid rgba(255,255,255,0.07);padding-top:12px;">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;cursor:pointer;" onclick="toggleAlcool()">
           <div id="alc-checkbox" style="width:16px;height:16px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0;transition:all 0.2s;"></div>
@@ -316,7 +304,6 @@
       </div>
     </div>
 
-    <!-- Right: temp + transport -->
     <div>
       <div class="box" style="margin-bottom:14px;">
         <div class="box-label">🌡️ Temperatura</div>
@@ -329,6 +316,19 @@
         <div class="box-label">🚚 Trasporto</div>
         <button class="btn-radio active" data-tr="GOMMA" onclick="setTransport(this)" style="border-color:#4A8C9B;background:rgba(74,140,155,0.18);color:#EEE;">🚛 Camion (Gomma)</button>
         <button class="btn-radio"        data-tr="MARE"  onclick="setTransport(this)" id="btn-mare">🚢 Container (Mare)</button>
+        
+        <!-- Campi per capacità di carico -->
+        <div class="inline-fields">
+          <div class="inline-field">
+            <label>📦 Pallet per TRUCK</label>
+            <input type="number" id="pallets-per-truck" value="32" step="1" oninput="resetResults()" style="width:100%">
+          </div>
+          <div class="inline-field">
+            <label>📦 Pallet per CONTAINER</label>
+            <input type="number" id="pallets-per-container" value="24" step="1" oninput="resetResults()" style="width:100%">
+          </div>
+        </div>
+
         <div id="area-row" style="display:none;margin-top:10px;">
           <div style="font-size:10px;color:var(--muted);margin-bottom:6px;letter-spacing:1px;">AREA FORNITORE</div>
           <div style="display:flex;gap:8px;">
@@ -340,7 +340,6 @@
     </div>
   </div>
 
-  <!-- DESTINAZIONI -->
   <div class="box" style="margin-bottom:16px;">
     <div class="box-label">🏝️ Destinazioni</div>
     <div class="grid-4">
@@ -367,13 +366,10 @@
     </div>
   </div>
 
-  <!-- WARN -->
   <div class="warn" id="fob-warn"></div>
 
-  <!-- CALC BUTTON -->
   <button id="calc-btn" onclick="calculate()" disabled>Completa i campi per calcolare</button>
 
-  <!-- RESULTS -->
   <div id="results">
     <div class="results-label">✦ Risultati — Standard Cost 2</div>
     <div class="grid-2" id="results-grid"></div>
@@ -400,17 +396,10 @@ const state = {
   hasAlcool: false,
 };
 
-// ─── COSTI MODIFICATI con valori corretti ────────────────────────────────────
+// ─── COSTI (dal modello Canarie) ──────────────────────────────────────────────
 const C = {
   VERONA_BARCELONA: 2000,
-  // VALORI CORRETTI PER TRUCK (gomma)
-  PLT_TRUCK_DRY: 32,      // 32 pallet per camion DRY
-  PLT_TRUCK_FRESH: 32,    // 32 pallet per camion FRESH
-  PLT_TRUCK_FROZEN: 24,   // 24 pallet per camion FROZEN
-  // VALORI CORRETTI PER CONTAINER (mare)
-  PLT_PER_CONTAINER: 24,  // 24 pallet per container
   PALLET_COST: 15,
-  
   FREIGHT_GOMMA: {
     GC:  { DRY: 133.692,  FRESH: 117,    FROZEN: 133.692  },
     TF:  { DRY: 133.692,  FRESH: 117,    FROZEN: 133.692  },
@@ -509,7 +498,6 @@ function setTemp(btn) {
   btn.style.background = c + '25';
   btn.style.color = '#EEE';
 
-  // Disable mare for frozen
   const btnMare = document.getElementById('btn-mare');
   if (state.temperature === 'FROZEN') {
     btnMare.disabled = true;
@@ -518,7 +506,6 @@ function setTemp(btn) {
     btnMare.disabled = false;
   }
 
-  // Update calc button color
   document.getElementById('calc-btn').style.background =
     'linear-gradient(135deg,' + c + ',#1A4060)';
 
@@ -562,7 +549,6 @@ function toggleIsland(btn) {
   resetResults(); checkCanCalc();
 }
 
-// ─── WARNINGS ────────────────────────────────────────────────────────────────
 function updateFobWarn() {
   const warn = document.getElementById('fob-warn');
   let msg = '';
@@ -572,7 +558,7 @@ function updateFobWarn() {
 }
 
 // ─── TASSA ALCOLICI ───────────────────────────────────────────────────────────
-const AIEM_ALCOLICI_PER_HL = 750.36; // €/ettolitro di alcol puro
+const AIEM_ALCOLICI_PER_HL = 750.36;
 
 function toggleAlcool() {
   state.hasAlcool = !state.hasAlcool;
@@ -606,14 +592,17 @@ function resetResults() {
   checkCanCalc();
 }
 
-// ─── CALCULATION MODIFICATA con valori corretti ──────────────────────────────
+// ─── CALCULATION con valori dinamici da input ────────────────────────────────
 function calculate() {
   const price = parseFloat(document.getElementById('purchase-price').value);
   const box   = parseFloat(document.getElementById('box-per-pallet').value);
   const qty   = parseFloat(document.getElementById('qty-per-box').value) || 0;
   const aiem  = parseFloat(document.getElementById('aiem').value) || 0;
+  
+  // Legge i valori dai campi input
+  const palletsPerTruck = parseFloat(document.getElementById('pallets-per-truck').value) || 32;
+  const palletsPerContainer = parseFloat(document.getElementById('pallets-per-container').value) || 24;
 
-  // Tassa alcolici: Lt_unità × (grado/100) × (750.36/100) = €/unità
   const alcLitri = state.hasAlcool ? (parseFloat(document.getElementById('alc-litri').value) || 0) : 0;
   const alcGrado = state.hasAlcool ? (parseFloat(document.getElementById('alc-grado').value) || 0) : 0;
   const alcTassaPerUnit = alcLitri > 0 && alcGrado > 0
@@ -636,15 +625,8 @@ function calculate() {
 
     if (state.transport === 'GOMMA') {
       const freightPerPallet = C.FREIGHT_GOMMA[key]?.[temp] || 0;
-      
-      // SELEZIONE CORRETTA dei pallet per truck in base alla temperatura
-      let truckPallets;
-      if (temp === 'DRY') truckPallets = C.PLT_TRUCK_DRY;      // 32
-      else if (temp === 'FRESH') truckPallets = C.PLT_TRUCK_FRESH; // 32
-      else if (temp === 'FROZEN') truckPallets = C.PLT_TRUCK_FROZEN; // 24
-      else truckPallets = C.PLT_TRUCK_DRY;
-      
-      const veronaPerUnit = C.VERONA_BARCELONA / truckPallets / unitsPerPallet;
+      // USA il valore dal campo input per i pallet per truck
+      const veronaPerUnit = C.VERONA_BARCELONA / palletsPerTruck / unitsPerPallet;
       const freightUnit   = freightPerPallet / unitsPerPallet;
       const fuel          = freightUnit * C.FUEL_SURCHARGE;
       const insurance     = price * C.INSURANCE;
@@ -652,84 +634,5 @@ function calculate() {
     } else {
       const cKey = key + '_' + state.area;
       const freightPerContainer = C.FREIGHT_MARE[cKey] || C.FREIGHT_MARE[key+'_NORD'] || 0;
-      const unitsPerContainer   = C.PLT_PER_CONTAINER * unitsPerPallet;
-      freightPerUnit  = freightPerContainer / unitsPerContainer;
-      inlandPerUnit   = C.INLAND[key] / unitsPerContainer;
-    }
-
-    const palletPerUnit = C.PALLET_COST / unitsPerPallet;
-    const aiemRate = aiem / 100;
-    const aiemBase = price + freightPerUnit + inlandPerUnit + palletPerUnit + alcTassaPerUnit;
-    const aiemPerUnit = aiemRate > 0 ? aiemBase * aiemRate : 0;
-    const step1 = aiemBase + aiemPerUnit;
-
-    // Warehouse
-    let wh = 0, whRows = '';
-    const pickDiv = getPickingDivisor(qty || 1);
-    if (state.ubicazione === 'MTO') {
-      wh = C.MTO[temp] / unitsPerPallet;
-      whRows = row('🔄 MTO handling', wh.toFixed(4));
-    } else if (state.ubicazione === 'MTS') {
-      const d = C.MTS_D[temp] / unitsPerPallet;
-      const i = C.MTS_I[temp] / unitsPerPallet;
-      const p = C.MTS_P[temp] / pickDiv;
-      wh = d + i + p;
-      whRows = row('🏭 Deposito', d.toFixed(4))
-             + row('🏭 Inbound',  i.toFixed(4))
-             + row('🏭 Picking',  p.toFixed(4));
-    } else {
-      whRows = '<div class="cost-row" style="font-style:italic;color:var(--dim)"><span>🚛 FOR — nessun handling</span></div>';
-    }
-
-    const step2 = step1 + wh;
-    const color = C.ISLAND_COLORS[key];
-
-    const card = document.createElement('div');
-    card.className = 'result-card';
-    card.innerHTML = `
-      <div class="result-island">
-        <span class="em">${C.ISLAND_FLAGS[key]}</span>
-        <div class="name">${C.ISLAND_NAMES[key]}</div>
-      </div>
-      ${row('Prezzo acquisto', price.toFixed(4), false, true)}
-      <div class="cost-divider"></div>
-      ${row('Trasporto / unità', freightPerUnit.toFixed(4))}
-      ${inlandPerUnit > 0 ? row('Inland + Dogana', inlandPerUnit.toFixed(4)) : ''}
-      ${row('Costo pallet / unità', palletPerUnit.toFixed(4))}
-      ${alcTassaPerUnit > 0 ? row('🍷 Tassa alcolici AIEM (' + alcGrado + '° · ' + alcLitri + 'Lt)', alcTassaPerUnit.toFixed(4)) : ''}
-      ${aiemPerUnit > 0 ? row('AIEM (' + aiem + '%)', aiemPerUnit.toFixed(4)) : ''}
-      <div class="cost-divider"></div>
-      ${row('→ Standard Cost 1', step1.toFixed(4), true)}
-      <div class="cost-divider"></div>
-      ${whRows}
-      <div class="sc2-box" style="background:linear-gradient(135deg,${color}20,rgba(0,0,0,0.25));border:1px solid ${color}55;">
-        <div class="sc2-label">Standard Cost 2</div>
-        <div class="sc2-value">€ ${step2.toFixed(4)}</div>
-        <div class="sc2-sub">per ${state.uom}</div>
-      </div>
-    `;
-    grid.appendChild(card);
-    rendered++;
-  });
-
-  if (rendered > 0) {
-    document.getElementById('results').classList.add('visible');
-  }
-}
-
-function row(label, val, bold, highlight) {
-  const cls = bold ? 'cost-row bold' : 'cost-row';
-  const color = highlight ? 'var(--text)' : '';
-  return `<div class="${cls}" style="color:${color}">
-    <span>${label}</span>
-    <span class="mono">€ ${val}</span>
-  </div>`;
-}
-
-// ─── INIT LISTENERS ───────────────────────────────────────────────────────────
-document.getElementById('purchase-price').addEventListener('input', checkCanCalc);
-document.getElementById('qty-per-box').addEventListener('input', checkCanCalc);
-document.getElementById('box-per-pallet').addEventListener('input', checkCanCalc);
-</script>
-</body>
-</html>
+      // USA il valore dal campo input per i pallet per container
+      const unitsPerContainer   =
