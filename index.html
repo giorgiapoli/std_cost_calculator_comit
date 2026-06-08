@@ -649,4 +649,91 @@ function calculate() {
       // USA il valore dal campo palletsPerTruck
       const veronaPerUnit = C.VERONA_BARCELONA / palletsPerTruck / unitsPerPallet;
       const freightUnit   = freightPerPallet / unitsPerPallet;
-      const fuel          = freightUnit * C.F
+      const fuel          = freightUnit * C.FUEL_SURCHARGE;
+      const insurance     = price * C.INSURANCE;
+      freightPerUnit = veronaPerUnit + freightUnit + fuel + insurance;
+    } else {
+      const cKey = key + '_' + state.area;
+      const freightPerContainer = C.FREIGHT_MARE[cKey] || C.FREIGHT_MARE[key+'_NORD'] || 0;
+      // USA il valore dal campo palletsPerContainer
+      const unitsPerContainer   = palletsPerContainer * unitsPerPallet;
+      freightPerUnit  = freightPerContainer / unitsPerContainer;
+      inlandPerUnit   = C.INLAND[key] / unitsPerContainer;
+    }
+
+    const palletPerUnit = C.PALLET_COST / unitsPerPallet;
+    const aiemRate = aiem / 100;
+    const aiemBase = price + freightPerUnit + inlandPerUnit + palletPerUnit + alcTassaPerUnit;
+    const aiemPerUnit = aiemRate > 0 ? aiemBase * aiemRate : 0;
+    const step1 = aiemBase + aiemPerUnit;
+
+    let wh = 0, whRows = '';
+    const pickDiv = getPickingDivisor(qty || 1);
+    if (state.ubicazione === 'MTO') {
+      wh = C.MTO[temp] / unitsPerPallet;
+      whRows = row('🔄 MTO handling', wh.toFixed(4));
+    } else if (state.ubicazione === 'MTS') {
+      const d = C.MTS_D[temp] / unitsPerPallet;
+      const i = C.MTS_I[temp] / unitsPerPallet;
+      const p = C.MTS_P[temp] / pickDiv;
+      wh = d + i + p;
+      whRows = row('🏭 Deposito', d.toFixed(4))
+             + row('🏭 Inbound',  i.toFixed(4))
+             + row('🏭 Picking',  p.toFixed(4));
+    } else {
+      whRows = '<div class="cost-row" style="font-style:italic;color:var(--dim)"><span>🚛 FOR — nessun handling</span></div>';
+    }
+
+    const step2 = step1 + wh;
+    const color = C.ISLAND_COLORS[key];
+
+    const card = document.createElement('div');
+    card.className = 'result-card';
+    card.innerHTML = `
+      <div class="result-island">
+        <span class="em">${C.ISLAND_FLAGS[key]}</span>
+        <div class="name">${C.ISLAND_NAMES[key]}</div>
+      </div>
+      ${row('Prezzo acquisto', price.toFixed(4), false, true)}
+      <div class="cost-divider"></div>
+      ${row('Trasporto / unità', freightPerUnit.toFixed(4))}
+      ${inlandPerUnit > 0 ? row('Inland + Dogana', inlandPerUnit.toFixed(4)) : ''}
+      ${row('Costo pallet / unità', palletPerUnit.toFixed(4))}
+      ${alcTassaPerUnit > 0 ? row('🍷 Tassa alcolici AIEM (' + alcGrado + '° · ' + alcLitri + 'Lt)', alcTassaPerUnit.toFixed(4)) : ''}
+      ${aiemPerUnit > 0 ? row('AIEM (' + aiem + '%)', aiemPerUnit.toFixed(4)) : ''}
+      <div class="cost-divider"></div>
+      ${row('→ Standard Cost 1', step1.toFixed(4), true)}
+      <div class="cost-divider"></div>
+      ${whRows}
+      <div class="sc2-box" style="background:linear-gradient(135deg,${color}20,rgba(0,0,0,0.25));border:1px solid ${color}55;">
+        <div class="sc2-label">Standard Cost 2</div>
+        <div class="sc2-value">€ ${step2.toFixed(4)}</div>
+        <div class="sc2-sub">per ${state.uom}</div>
+      </div>
+    `;
+    grid.appendChild(card);
+    rendered++;
+  });
+
+  if (rendered > 0) {
+    document.getElementById('results').classList.add('visible');
+  }
+}
+
+function row(label, val, bold, highlight) {
+  const cls = bold ? 'cost-row bold' : 'cost-row';
+  const color = highlight ? 'var(--text)' : '';
+  return `<div class="${cls}" style="color:${color}">
+    <span>${label}</span>
+    <span class="mono">€ ${val}</span>
+  </div>`;
+}
+
+document.getElementById('purchase-price').addEventListener('input', checkCanCalc);
+document.getElementById('qty-per-box').addEventListener('input', checkCanCalc);
+document.getElementById('box-per-pallet').addEventListener('input', checkCanCalc);
+document.getElementById('pallets-per-truck').addEventListener('input', checkCanCalc);
+document.getElementById('pallets-per-container').addEventListener('input', checkCanCalc);
+</script>
+</body>
+</html>
