@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Standard Cost Estimator · Canarie | IFB</title>
+<title>Standard Cost Estimator · Canarie | COMIT</title>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -569,7 +569,7 @@ function resetResults() {
   checkCanCalc();
 }
 
-// ── CALCOLO ──
+// ── CALCOLO (MODIFICATO: assicurazione SOLO per GOMMA) ──
 function calculate() {
   const price = parseFloat(document.getElementById('purchase-price').value);
   const box   = parseFloat(document.getElementById('box-per-pallet').value);
@@ -592,85 +592,19 @@ function calculate() {
   ['GC','TF','LAN','FUE'].forEach(key => {
     if (!state.islands[key]) return;
     const temp = state.temperature;
-    let freight = 0, inland = 0;
+    let freight = 0, inland = 0, insurance = 0;
 
     if (state.transport === 'GOMMA') {
       const fpp     = C.FREIGHT_GOMMA[key][temp] || 0;
       const trucks  = temp === 'FROZEN' ? C.PLT_TRUCK_FROZEN : C.PLT_TRUCK_DRY;
       const verona  = C.VERONA_BARCELONA / trucks / unitsPerPallet;
       const funit   = fpp / unitsPerPallet;
-      freight = verona + funit + funit * C.FUEL_SURCHARGE + price * C.INSURANCE;
+      freight = verona + funit + funit * C.FUEL_SURCHARGE;
+      insurance = price * C.INSURANCE;  // ← Assicurazione SOLO per gomma
     } else {
       const cKey = key + '_' + state.area;
       const fpc  = C.FREIGHT_MARE[cKey] || C.FREIGHT_MARE[key + '_NORD'] || 0;
       const upc  = C.PLT_PER_CONTAINER * unitsPerPallet;
-      freight = fpc / upc + price * C.INSURANCE;
+      freight = fpc / upc;
       inland  = C.INLAND[key] / upc;
-    }
-
-    const pallet   = C.PALLET_COST / unitsPerPallet;
-    const aiemBase = price + freight + inland + pallet + alcTassa;
-    const aiemAmt  = aiem > 0 ? aiemBase * (aiem / 100) : 0;
-    const step1    = aiemBase + aiemAmt;
-
-    let wh = 0, whRows = '';
-    const pd = getPickingDivisor(qty || 1);
-    if (state.ubicazione === 'MTO') {
-      wh = C.MTO[temp] / unitsPerPallet;
-      whRows = row('&#x1F504; MTO handling', wh.toFixed(4));
-    } else if (state.ubicazione === 'MTS') {
-      const d = C.MTS_D[temp] / unitsPerPallet;
-      const i = C.MTS_I[temp] / unitsPerPallet;
-      const p = C.MTS_P[temp] / pd;
-      wh = d + i + p;
-      whRows = row('&#x1F3ED; Deposito', d.toFixed(4))
-             + row('&#x1F3ED; Inbound',  i.toFixed(4))
-             + row('&#x1F3ED; Picking',  p.toFixed(4));
-    } else {
-      whRows = '<div class="cost-row" style="font-style:italic;color:var(--dim)"><span>&#x1F69B; FOR &mdash; nessun handling</span></div>';
-    }
-
-    const step2 = step1 + wh;
-    const color = C.ISLAND_COLORS[key];
-    const card  = document.createElement('div');
-    card.className = 'result-card';
-    card.innerHTML =
-      '<div class="result-island">' +
-        '<span class="em">' + C.ISLAND_FLAGS[key] + '</span>' +
-        '<div class="name">' + C.ISLAND_NAMES[key] + '</div>' +
-      '</div>' +
-      row('Prezzo acquisto', price.toFixed(4), false, true) +
-      '<div class="cost-divider"></div>' +
-      row('Trasporto / unit&agrave;', freight.toFixed(4)) +
-      (inland > 0 ? row('Inland + Dogana', inland.toFixed(4)) : '') +
-      row('Costo pallet / unit&agrave;', pallet.toFixed(4)) +
-      (alcTassa > 0 ? row('&#x1F377; Tassa alcolici (' + alcGrado + '&#xB0; &middot; ' + alcLitri + ' Lt)', alcTassa.toFixed(4)) : '') +
-      (aiemAmt  > 0 ? row('AIEM (' + aiem + '%)', aiemAmt.toFixed(4)) : '') +
-      '<div class="cost-divider"></div>' +
-      row('&rarr; Standard Cost 1', step1.toFixed(4), true) +
-      '<div class="cost-divider"></div>' +
-      whRows +
-      '<div class="sc2-box" style="background:linear-gradient(135deg,' + color + '20,rgba(0,0,0,0.25));border:1px solid ' + color + '55;">' +
-        '<div class="sc2-label">STANDARD COST 2</div>' +
-        '<div class="sc2-value">&euro; ' + step2.toFixed(4) + '</div>' +
-        '<div class="sc2-sub">per ' + state.uom + '</div>' +
-      '</div>';
-    grid.appendChild(card);
-    rendered++;
-  });
-
-  if (rendered > 0) document.getElementById('results').classList.add('visible');
-}
-
-function row(label, val, bold, highlight) {
-  const cls   = bold ? 'cost-row bold' : 'cost-row';
-  const color = highlight ? 'var(--text)' : '';
-  return '<div class="' + cls + '" style="color:' + color + '"><span>' + label + '</span><span class="mono">&euro; ' + val + '</span></div>';
-}
-
-document.getElementById('purchase-price').addEventListener('input', checkCanCalc);
-document.getElementById('qty-per-box').addEventListener('input', checkCanCalc);
-document.getElementById('box-per-pallet').addEventListener('input', checkCanCalc);
-</script>
-</body>
-</html>
+      //
