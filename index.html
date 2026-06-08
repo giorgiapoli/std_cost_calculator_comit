@@ -281,14 +281,22 @@
         <input type="number" id="purchase-price" placeholder="es. 2.50" oninput="resetResults()">
       </div>
 
+      <!-- Campi standard per PCS e BOX -->
       <div class="field" id="qty-field">
         <label id="qty-label">Pezzi per cartone</label>
         <input type="number" id="qty-per-box" placeholder="es. 12" oninput="resetResults()">
       </div>
 
-      <div class="field">
+      <div class="field" id="box-field">
         <label id="box-label">Cartoni per pallet</label>
         <input type="number" id="box-per-pallet" placeholder="es. 70" oninput="resetResults()">
+      </div>
+
+      <!-- Campo specifico per KG: Kg per pallet (mostrato solo quando UOM = KG) -->
+      <div class="field" id="kg-per-pallet-field" style="display:none;">
+        <label>⚖️ Kg per pallet</label>
+        <input type="number" id="kg-per-pallet" placeholder="es. 720" oninput="resetResults()">
+        <div style="font-size:9px; color:var(--dim); margin-top:4px;">Peso totale del pallet in kg (es: 4kg/box × 180 box/pallet = 720kg)</div>
       </div>
 
       <div class="field">
@@ -438,6 +446,12 @@ const C = {
 };
 
 function getUnitsPerPallet(qtyPerBox, boxPerPallet) {
+  // Se UOM è KG, usa il campo kg-per-pallet direttamente
+  if (state.uom === "KG") {
+    const kgPerPallet = parseFloat(document.getElementById('kg-per-pallet').value);
+    if (kgPerPallet && kgPerPallet > 0) return kgPerPallet;
+    return 0;
+  }
   if (state.uom === "BOX") return boxPerPallet;
   return qtyPerBox * boxPerPallet;
 }
@@ -453,24 +467,31 @@ function setUOM(btn) {
   btn.classList.add('active');
 
   const qtyField = document.getElementById('qty-field');
+  const boxField = document.getElementById('box-field');
+  const kgField = document.getElementById('kg-per-pallet-field');
   const priceLabel = document.getElementById('price-label');
   const qtyLabel = document.getElementById('qty-label');
-  const hint = document.getElementById('uom-hint');
   const boxLabel = document.getElementById('box-label');
+  const hint = document.getElementById('uom-hint');
 
   if (state.uom === 'BOX') {
     qtyField.style.display = 'none';
+    boxField.style.display = '';
+    kgField.style.display = 'none';
     priceLabel.textContent = 'Prezzo acquisto per CARTONE (€)';
     boxLabel.textContent = 'Cartoni (BOX) per pallet';
     hint.textContent = 'Prezzo per cartone/box. Divisore = box/pallet.';
   } else if (state.uom === 'KG') {
-    qtyField.style.display = '';
+    qtyField.style.display = 'none';
+    boxField.style.display = 'none';
+    kgField.style.display = '';
     priceLabel.textContent = 'Prezzo acquisto per KG (€)';
-    qtyLabel.textContent = 'Kg netti per cartone';
-    boxLabel.textContent = 'Cartoni per pallet';
-    hint.textContent = 'Prezzo per kg. Divisore = kg/cartone × cartoni/pallet.';
+    boxLabel.textContent = 'Cartoni per pallet (non usato)';
+    hint.textContent = 'Inserisci il peso totale del pallet in Kg.';
   } else {
     qtyField.style.display = '';
+    boxField.style.display = '';
+    kgField.style.display = 'none';
     priceLabel.textContent = 'Prezzo acquisto per PEZZO (€)';
     qtyLabel.textContent = 'Pezzi per cartone';
     boxLabel.textContent = 'Cartoni per pallet';
@@ -589,11 +610,21 @@ function toggleAlcool() {
 
 function checkCanCalc() {
   const price = parseFloat(document.getElementById('purchase-price').value);
-  const box = parseFloat(document.getElementById('box-per-pallet').value);
-  const qty = parseFloat(document.getElementById('qty-per-box').value);
+  
+  let unitsPerPallet = 0;
+  if (state.uom === 'KG') {
+    unitsPerPallet = parseFloat(document.getElementById('kg-per-pallet').value);
+  } else if (state.uom === 'BOX') {
+    unitsPerPallet = parseFloat(document.getElementById('box-per-pallet').value);
+  } else {
+    const qty = parseFloat(document.getElementById('qty-per-box').value);
+    const box = parseFloat(document.getElementById('box-per-pallet').value);
+    unitsPerPallet = qty * box;
+  }
+  
   const anyIsland = Object.values(state.islands).some(v => v);
-  const needQty = state.uom !== 'BOX';
-  const ok = price > 0 && box > 0 && (!needQty || qty > 0) && anyIsland;
+  const ok = price > 0 && unitsPerPallet > 0 && anyIsland;
+  
   const btn = document.getElementById('calc-btn');
   btn.disabled = !ok;
   btn.textContent = ok ? '✦  CALCOLA STANDARD COST' : 'Completa i campi per calcolare';
@@ -606,19 +637,27 @@ function resetResults() {
 
 function calculate() {
   const price = parseFloat(document.getElementById('purchase-price').value);
-  const box = parseFloat(document.getElementById('box-per-pallet').value);
-  const qty = parseFloat(document.getElementById('qty-per-box').value) || 0;
   const aiem = parseFloat(document.getElementById('aiem').value) || 0;
   
   const palletsPerTruck = parseFloat(document.getElementById('pallets-per-truck').value) || 32;
   const palletsPerContainer = parseFloat(document.getElementById('pallets-per-container').value) || 24;
 
+  let unitsPerPallet = 0;
+  if (state.uom === 'KG') {
+    unitsPerPallet = parseFloat(document.getElementById('kg-per-pallet').value);
+  } else if (state.uom === 'BOX') {
+    unitsPerPallet = parseFloat(document.getElementById('box-per-pallet').value);
+  } else {
+    const qty = parseFloat(document.getElementById('qty-per-box').value) || 0;
+    const box = parseFloat(document.getElementById('box-per-pallet').value) || 0;
+    unitsPerPallet = qty * box;
+  }
+  
+  if (!unitsPerPallet || !price) return;
+
   const alcLitri = state.hasAlcool ? (parseFloat(document.getElementById('alc-litri').value) || 0) : 0;
   const alcGrado = state.hasAlcool ? (parseFloat(document.getElementById('alc-grado').value) || 0) : 0;
   const alcTassaPerUnit = alcLitri > 0 && alcGrado > 0 ? alcLitri * (alcGrado / 100) * (AIEM_ALCOLICI_PER_HL / 100) : 0;
-
-  const unitsPerPallet = getUnitsPerPallet(qty, box);
-  if (!unitsPerPallet || !price) return;
 
   const islands = ['GC', 'TF', 'LAN', 'FUE'];
   const grid = document.getElementById('results-grid');
@@ -653,11 +692,11 @@ function calculate() {
     const step1 = aiemBase + aiemPerUnit;
 
     let wh = 0, whRows = '';
-    const pickDiv = getPickingDivisor(qty || 1);
     if (state.ubicazione === 'MTO') {
       wh = C.MTO[temp] / unitsPerPallet;
       whRows = row('🔄 MTO handling', wh.toFixed(4));
     } else if (state.ubicazione === 'MTS') {
+      const pickDiv = getPickingDivisor(1);
       const d = C.MTS_D[temp] / unitsPerPallet;
       const i = C.MTS_I[temp] / unitsPerPallet;
       const p = C.MTS_P[temp] / pickDiv;
@@ -712,6 +751,7 @@ function row(label, val, bold, highlight) {
 document.getElementById('purchase-price').addEventListener('input', checkCanCalc);
 document.getElementById('qty-per-box').addEventListener('input', checkCanCalc);
 document.getElementById('box-per-pallet').addEventListener('input', checkCanCalc);
+document.getElementById('kg-per-pallet').addEventListener('input', checkCanCalc);
 document.getElementById('pallets-per-truck').addEventListener('input', checkCanCalc);
 document.getElementById('pallets-per-container').addEventListener('input', checkCanCalc);
 </script>
