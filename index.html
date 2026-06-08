@@ -130,12 +130,30 @@
     transition: border-color 0.2s;
   }
   .field input:focus { border-color: rgba(196,135,59,0.5); }
-  .field input.small-input { width: 120px; display: inline-block; margin-right: 8px; }
-  
-  .inline-fields { display: flex; gap: 16px; margin-top: 12px; flex-wrap: wrap; }
-  .inline-field { flex: 1; min-width: 120px; }
-  .inline-field label { font-size: 10px; margin-bottom: 4px; }
-  .inline-field input { font-size: 13px; padding: 7px 10px; }
+
+  /* Stili per i nuovi campi inline */
+  .inline-fields {
+    display: flex;
+    gap: 16px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(255,255,255,0.07);
+  }
+  .inline-field {
+    flex: 1;
+  }
+  .inline-field label {
+    display: block;
+    font-size: 10px;
+    color: var(--muted);
+    margin-bottom: 4px;
+    letter-spacing: 0.5px;
+  }
+  .inline-field input {
+    width: 100%;
+    padding: 8px 10px;
+    font-size: 13px;
+  }
 
   #calc-btn {
     width: 100%; padding: 15px;
@@ -317,15 +335,15 @@
         <button class="btn-radio active" data-tr="GOMMA" onclick="setTransport(this)" style="border-color:#4A8C9B;background:rgba(74,140,155,0.18);color:#EEE;">🚛 Camion (Gomma)</button>
         <button class="btn-radio"        data-tr="MARE"  onclick="setTransport(this)" id="btn-mare">🚢 Container (Mare)</button>
         
-        <!-- Campi per capacità di carico -->
+        <!-- NUOVI CAMPI: pallet per truck e per container -->
         <div class="inline-fields">
           <div class="inline-field">
             <label>📦 Pallet per TRUCK</label>
-            <input type="number" id="pallets-per-truck" value="32" step="1" oninput="resetResults()" style="width:100%">
+            <input type="number" id="pallets-per-truck" value="32" step="1" oninput="resetResults()">
           </div>
           <div class="inline-field">
             <label>📦 Pallet per CONTAINER</label>
-            <input type="number" id="pallets-per-container" value="24" step="1" oninput="resetResults()" style="width:100%">
+            <input type="number" id="pallets-per-container" value="24" step="1" oninput="resetResults()">
           </div>
         </div>
 
@@ -399,6 +417,8 @@ const state = {
 // ─── COSTI (dal modello Canarie) ──────────────────────────────────────────────
 const C = {
   VERONA_BARCELONA: 2000,
+  PLT_TRUCK_DRY: 32,
+  PLT_TRUCK_FROZEN: 24,
   PALLET_COST: 15,
   FREIGHT_GOMMA: {
     GC:  { DRY: 133.692,  FRESH: 117,    FROZEN: 133.692  },
@@ -412,6 +432,7 @@ const C = {
     LAN_NORD: 3521.4375,  FUE_NORD: 3521.4375,
   },
   INLAND: { GC: 762, TF: 762, LAN: 830, FUE: 830 },
+  PLT_PER_CONTAINER: 24,
   FUEL_SURCHARGE: 0.0284,
   INSURANCE: 0.005,
   MTO: { DRY: 8.16,    FRESH: 10.2,   FROZEN: 12.24   },
@@ -433,7 +454,7 @@ function getPickingDivisor(qtyPerBox) {
   return qtyPerBox;
 }
 
-// ─── SETTERS ─────────────────────────────────────────────────────────────────
+// ─── SETTERS (TUTTO INVARIATO) ───────────────────────────────────────────────
 function setUOM(btn) {
   state.uom = btn.dataset.uom;
   document.querySelectorAll('#uom-btns .btn-toggle').forEach(b => b.classList.remove('active'));
@@ -592,14 +613,14 @@ function resetResults() {
   checkCanCalc();
 }
 
-// ─── CALCULATION con valori dinamici da input ────────────────────────────────
+// ─── CALCULATION (MODIFICATA SOLO PER USARE I VALORI DEI NUOVI CAMPI) ─────────
 function calculate() {
   const price = parseFloat(document.getElementById('purchase-price').value);
   const box   = parseFloat(document.getElementById('box-per-pallet').value);
   const qty   = parseFloat(document.getElementById('qty-per-box').value) || 0;
   const aiem  = parseFloat(document.getElementById('aiem').value) || 0;
-  
-  // Legge i valori dai campi input
+
+  // LEGGI I VALORI DEI NUOVI CAMPI
   const palletsPerTruck = parseFloat(document.getElementById('pallets-per-truck').value) || 32;
   const palletsPerContainer = parseFloat(document.getElementById('pallets-per-container').value) || 24;
 
@@ -625,14 +646,7 @@ function calculate() {
 
     if (state.transport === 'GOMMA') {
       const freightPerPallet = C.FREIGHT_GOMMA[key]?.[temp] || 0;
-      // USA il valore dal campo input per i pallet per truck
+      // USA il valore dal campo palletsPerTruck
       const veronaPerUnit = C.VERONA_BARCELONA / palletsPerTruck / unitsPerPallet;
       const freightUnit   = freightPerPallet / unitsPerPallet;
-      const fuel          = freightUnit * C.FUEL_SURCHARGE;
-      const insurance     = price * C.INSURANCE;
-      freightPerUnit = veronaPerUnit + freightUnit + fuel + insurance;
-    } else {
-      const cKey = key + '_' + state.area;
-      const freightPerContainer = C.FREIGHT_MARE[cKey] || C.FREIGHT_MARE[key+'_NORD'] || 0;
-      // USA il valore dal campo input per i pallet per container
-      const unitsPerContainer   =
+      const fuel          = freightUnit * C.F
