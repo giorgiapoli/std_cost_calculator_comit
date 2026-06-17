@@ -221,12 +221,74 @@
     font-size: 11px; color: var(--dim); line-height: 1.7;
   }
 
+  /* PVP Section Styles */
+  .pvp-section {
+    margin-top: 24px;
+    padding: 20px;
+    background: rgba(196,135,59,0.06);
+    border: 1px solid rgba(196,135,59,0.2);
+    border-radius: 10px;
+    display: none;
+  }
+  .pvp-section.visible { display: block; }
+  .pvp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 12px; }
+  .pvp-field { background: rgba(255,255,255,0.04); padding: 14px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06); }
+  .pvp-field label { display: block; font-size: 11px; color: var(--muted); margin-bottom: 6px; }
+  .pvp-field input { 
+    width: 100%; padding: 8px 10px; 
+    background: rgba(255,255,255,0.06);
+    border: 1px solid var(--border);
+    border-radius: 6px; color: var(--text);
+    font-family: inherit; font-size: 14px; outline: none;
+    transition: border-color 0.2s;
+  }
+  .pvp-field input:focus { border-color: rgba(196,135,59,0.5); }
+  .pvp-field .hint { font-size: 9px; color: var(--dim); margin-top: 4px; }
+
+  .margin-result {
+    margin-top: 8px;
+    padding: 8px 12px;
+    background: rgba(74,155,108,0.12);
+    border: 1px solid rgba(74,155,108,0.25);
+    border-radius: 6px;
+    font-size: 13px;
+    color: var(--text);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .margin-result .margin-value {
+    font-weight: bold;
+    font-size: 18px;
+    color: #4A9B6C;
+  }
+  .margin-result .margin-value.negative { color: #B5534A; }
+
+  .pvp-update-btn {
+    margin-top: 12px;
+    padding: 10px 20px;
+    background: rgba(74,155,108,0.2);
+    border: 1px solid rgba(74,155,108,0.3);
+    border-radius: 6px;
+    color: #4A9B6C;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 12px;
+    transition: all 0.2s;
+    width: 100%;
+  }
+  .pvp-update-btn:hover { background: rgba(74,155,108,0.3); }
+
+  .pvp-single { display: none; }
+  .pvp-single.visible { display: block; }
+
   @media (max-width: 600px) {
     .grid-2 { grid-template-columns: 1fr; }
     .grid-4 { grid-template-columns: repeat(2,1fr); }
     .header { padding: 16px 20px; }
     .main   { padding: 20px 14px 40px; }
     .inline-fields { flex-direction: column; gap: 8px; }
+    .pvp-grid { grid-template-columns: 1fr; }
   }
 </style>
 </head>
@@ -397,6 +459,33 @@
   <div id="results">
     <div class="results-label">✦ Risultati — Standard Cost 2</div>
     <div class="grid-2" id="results-grid"></div>
+    
+    <!-- PVP Section -->
+    <div class="pvp-section" id="pvp-section">
+      <div class="box-label">💰 Margine su Prezzo di Vendita</div>
+      <div class="pvp-grid" id="pvp-grid">
+        <div class="pvp-field" id="pvp-field-1">
+          <label id="pvp-label-1">PVP 1 (Gran Canaria · Tenerife)</label>
+          <input type="number" id="pvp-1" placeholder="Inserisci PVP" step="0.01" oninput="updateMargins()">
+          <div class="hint" id="pvp-hint-1">Isole: Gran Canaria, Tenerife</div>
+          <div class="margin-result" id="margin-1">
+            <span>Margine</span>
+            <span class="margin-value" id="margin-value-1">—</span>
+          </div>
+        </div>
+        <div class="pvp-field" id="pvp-field-2">
+          <label id="pvp-label-2">PVP 2 (Lanzarote · Fuerteventura)</label>
+          <input type="number" id="pvp-2" placeholder="Inserisci PVP" step="0.01" oninput="updateMargins()">
+          <div class="hint" id="pvp-hint-2">Isole: Lanzarote, Fuerteventura</div>
+          <div class="margin-result" id="margin-2">
+            <span>Margine</span>
+            <span class="margin-value" id="margin-value-2">—</span>
+          </div>
+        </div>
+      </div>
+      <button class="pvp-update-btn" onclick="updateMargins()">🔄 Aggiorna Margini</button>
+    </div>
+    
     <div class="disclaimer">
       ⚠️ <strong style="color:rgba(232,224,208,0.6)">Nota:</strong>
       Stima indicativa basata sui parametri del modello ufficiale.
@@ -417,6 +506,7 @@ const state = {
   area: "NORD",
   islands: { GC: true, TF: true, LAN: false, FUE: false },
   hasAlcool: false,
+  calculatedCosts: {} // Store calculated costs per island
 };
 
 const C = {
@@ -443,10 +533,10 @@ const C = {
   ISLAND_COLORS: { GC:"#C4873B", TF:"#3B82C4", LAN:"#4A9B6C", FUE:"#9B4A6C" },
   ISLAND_FLAGS:  { GC:"🏝️", TF:"🌋", LAN:"🌿", FUE:"🏜️" },
   ISLAND_NAMES:  { GC:"Gran Canaria", TF:"Tenerife", LAN:"Lanzarote", FUE:"Fuerteventura" },
+  ISLAND_GROUPS: { group1: ['GC', 'TF'], group2: ['LAN', 'FUE'] }
 };
 
 function getUnitsPerPallet(qtyPerBox, boxPerPallet) {
-  // Se UOM è KG, usa il campo kg-per-pallet direttamente
   if (state.uom === "KG") {
     const kgPerPallet = parseFloat(document.getElementById('kg-per-pallet').value);
     if (kgPerPallet && kgPerPallet > 0) return kgPerPallet;
@@ -632,6 +722,7 @@ function checkCanCalc() {
 
 function resetResults() {
   document.getElementById('results').classList.remove('visible');
+  document.getElementById('pvp-section').classList.remove('visible');
   checkCanCalc();
 }
 
@@ -663,6 +754,8 @@ function calculate() {
   const grid = document.getElementById('results-grid');
   grid.innerHTML = '';
 
+  state.calculatedCosts = {}; // Reset stored costs
+  
   let rendered = 0;
   islands.forEach(key => {
     if (!state.islands[key]) return;
@@ -707,6 +800,10 @@ function calculate() {
     }
 
     const step2 = step1 + wh;
+    
+    // Store the calculated cost for this island
+    state.calculatedCosts[key] = step2;
+
     const color = C.ISLAND_COLORS[key];
 
     const card = document.createElement('div');
@@ -739,7 +836,95 @@ function calculate() {
 
   if (rendered > 0) {
     document.getElementById('results').classList.add('visible');
+    // Show PVP section
+    setupPVPSection();
+    document.getElementById('pvp-section').classList.add('visible');
+    updateMargins();
   }
+}
+
+function setupPVPSection() {
+  const group1 = C.ISLAND_GROUPS.group1;
+  const group2 = C.ISLAND_GROUPS.group2;
+  
+  const hasGroup1 = group1.some(island => state.islands[island]);
+  const hasGroup2 = group2.some(island => state.islands[island]);
+  
+  const pvpField1 = document.getElementById('pvp-field-1');
+  const pvpField2 = document.getElementById('pvp-field-2');
+  
+  // Show/hide PVP fields based on selected islands
+  pvpField1.style.display = hasGroup1 ? 'block' : 'none';
+  pvpField2.style.display = hasGroup2 ? 'block' : 'none';
+  
+  // Update labels with island names
+  if (hasGroup1) {
+    const names = group1.filter(i => state.islands[i]).map(i => C.ISLAND_NAMES[i]);
+    document.getElementById('pvp-label-1').textContent = `PVP 1 (${names.join(' · ')})`;
+    document.getElementById('pvp-hint-1').textContent = `Isole: ${names.join(', ')}`;
+  }
+  
+  if (hasGroup2) {
+    const names = group2.filter(i => state.islands[i]).map(i => C.ISLAND_NAMES[i]);
+    document.getElementById('pvp-label-2').textContent = `PVP 2 (${names.join(' · ')})`;
+    document.getElementById('pvp-hint-2').textContent = `Isole: ${names.join(', ')}`;
+  }
+  
+  // Reset PVP inputs
+  document.getElementById('pvp-1').value = '';
+  document.getElementById('pvp-2').value = '';
+  document.getElementById('margin-value-1').textContent = '—';
+  document.getElementById('margin-value-2').textContent = '—';
+}
+
+function updateMargins() {
+  const pvp1 = parseFloat(document.getElementById('pvp-1').value);
+  const pvp2 = parseFloat(document.getElementById('pvp-2').value);
+  
+  const group1 = C.ISLAND_GROUPS.group1;
+  const group2 = C.ISLAND_GROUPS.group2;
+  
+  // Calculate margin for Group 1 (GC, TF)
+  if (pvp1 && pvp1 > 0) {
+    const avgCost1 = calculateAverageCost(group1);
+    if (avgCost1 !== null) {
+      const margin1 = ((pvp1 - avgCost1) / pvp1) * 100;
+      const marginElement = document.getElementById('margin-value-1');
+      marginElement.textContent = margin1.toFixed(1) + '%';
+      marginElement.className = 'margin-value' + (margin1 < 0 ? ' negative' : '');
+    } else {
+      document.getElementById('margin-value-1').textContent = 'N/A';
+    }
+  } else {
+    document.getElementById('margin-value-1').textContent = '—';
+  }
+  
+  // Calculate margin for Group 2 (LAN, FUE)
+  if (pvp2 && pvp2 > 0) {
+    const avgCost2 = calculateAverageCost(group2);
+    if (avgCost2 !== null) {
+      const margin2 = ((pvp2 - avgCost2) / pvp2) * 100;
+      const marginElement = document.getElementById('margin-value-2');
+      marginElement.textContent = margin2.toFixed(1) + '%';
+      marginElement.className = 'margin-value' + (margin2 < 0 ? ' negative' : '');
+    } else {
+      document.getElementById('margin-value-2').textContent = 'N/A';
+    }
+  } else {
+    document.getElementById('margin-value-2').textContent = '—';
+  }
+}
+
+function calculateAverageCost(islandGroup) {
+  const costs = [];
+  for (const island of islandGroup) {
+    if (state.islands[island] && state.calculatedCosts[island] !== undefined) {
+      costs.push(state.calculatedCosts[island]);
+    }
+  }
+  if (costs.length === 0) return null;
+  const sum = costs.reduce((a, b) => a + b, 0);
+  return sum / costs.length;
 }
 
 function row(label, val, bold, highlight) {
@@ -748,6 +933,11 @@ function row(label, val, bold, highlight) {
   return `<div class="${cls}" style="color:${color}"><span>${label}</span><span class="mono">€ ${val}</span></div>`;
 }
 
+// Input event listeners for PVP fields
+document.getElementById('pvp-1').addEventListener('input', updateMargins);
+document.getElementById('pvp-2').addEventListener('input', updateMargins);
+
+// Existing input listeners
 document.getElementById('purchase-price').addEventListener('input', checkCanCalc);
 document.getElementById('qty-per-box').addEventListener('input', checkCanCalc);
 document.getElementById('box-per-pallet').addEventListener('input', checkCanCalc);
