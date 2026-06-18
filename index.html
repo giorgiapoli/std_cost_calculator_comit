@@ -130,6 +130,7 @@
     transition: border-color 0.2s;
   }
   .field input:focus { border-color: rgba(196,135,59,0.5); }
+  .field .price-hint { font-size: 9px; color: var(--dim); margin-top: 2px; }
 
   .inline-fields {
     display: flex;
@@ -279,8 +280,36 @@
   }
   .pvp-update-btn:hover { background: rgba(74,155,108,0.3); }
 
-  .pvp-single { display: none; }
-  .pvp-single.visible { display: block; }
+  .price-fields-group {
+    border-top: 1px solid rgba(255,255,255,0.07);
+    margin-top: 8px;
+    padding-top: 10px;
+  }
+  .price-fields-group .price-field {
+    margin-bottom: 6px;
+  }
+  .price-fields-group .price-field label {
+    font-size: 10px;
+    color: var(--dim);
+  }
+  .price-fields-group .price-field input {
+    font-size: 13px;
+    padding: 6px 10px;
+  }
+  .price-field.hidden { display: none; }
+  .price-field.active-price {
+    border-left: 3px solid var(--gold);
+    padding-left: 10px;
+    background: rgba(196,135,59,0.05);
+    border-radius: 4px;
+  }
+  .price-field .used-label {
+    font-size: 9px;
+    color: var(--gold);
+    font-weight: bold;
+    display: inline-block;
+    margin-left: 6px;
+  }
 
   @media (max-width: 600px) {
     .grid-2 { grid-template-columns: 1fr; }
@@ -321,15 +350,15 @@
       <div class="box-label">🏭 Gestione Magazzino</div>
       <button class="btn-radio active" data-ubic="MTO" onclick="setUbic(this)" style="border-color:#4A8C9B; background:rgba(74,140,155,0.18); color:#EEE;">
         🔄 MTO — Cross-docking
-        <div class="sub">Costo In+Stock+Out per pallet</div>
+        <div class="sub">Costo In+Stock+Out per pallet · usa prezzo DAP</div>
       </button>
       <button class="btn-radio" data-ubic="FOR" onclick="setUbic(this)">
         🚛 FOR — Franco fornitore
-        <div class="sub">Nessun costo handling aggiunto</div>
+        <div class="sub">Nessun costo handling aggiunto · usa prezzo FCA</div>
       </button>
       <button class="btn-radio" data-ubic="MTS" onclick="setUbic(this)">
         🏭 MTS — Magazzino
-        <div class="sub">Deposito + Inbound + Picking</div>
+        <div class="sub">Deposito + Inbound + Picking · usa prezzo MTS (o DAP se 0)</div>
       </button>
     </div>
   </div>
@@ -338,9 +367,27 @@
     <div class="box">
       <div class="box-label">📦 Prezzo & Contenenza</div>
 
-      <div class="field">
+      <!-- Prezzo in uso (mostra solo quello attivo) -->
+      <div class="field" id="active-price-field">
         <label id="price-label">Prezzo acquisto per PEZZO (€)</label>
         <input type="number" id="purchase-price" placeholder="es. 2.50" oninput="resetResults()">
+        <div class="price-hint" id="price-hint">Fonte: DAP (lista fornitori)</div>
+      </div>
+
+      <!-- Tutti i prezzi (FCA, DAP, MTS) - visibili in base alla selezione -->
+      <div class="price-fields-group" id="price-fields-group">
+        <div class="price-field" id="price-fca">
+          <label>FCA <span style="font-size:9px;color:var(--dim);">(FOR)</span></label>
+          <input type="number" id="price-fca-input" placeholder="es. 2.30" step="any" oninput="syncPrice()">
+        </div>
+        <div class="price-field" id="price-dap">
+          <label>DAP <span style="font-size:9px;color:var(--dim);">(MTO / MTS se MTS=0)</span></label>
+          <input type="number" id="price-dap-input" placeholder="es. 2.50" step="any" oninput="syncPrice()">
+        </div>
+        <div class="price-field" id="price-mts">
+          <label>MTS <span style="font-size:9px;color:var(--dim);">(magazzino)</span></label>
+          <input type="number" id="price-mts-input" placeholder="es. 2.70" step="any" oninput="syncPrice()">
+        </div>
       </div>
 
       <!-- Campi standard per PCS e BOX -->
@@ -536,6 +583,58 @@ const C = {
   ISLAND_GROUPS: { group1: ['GC', 'TF'], group2: ['LAN', 'FUE'] }
 };
 
+// ─── FUNZIONI PREZZO ──────────────────────────────────────────────
+
+function getActivePrice() {
+  const ubic = state.ubicazione;
+  const fca = parseFloat(document.getElementById('price-fca-input').value) || 0;
+  const dap = parseFloat(document.getElementById('price-dap-input').value) || 0;
+  const mts = parseFloat(document.getElementById('price-mts-input').value) || 0;
+  
+  let price = 0;
+  let source = '';
+  
+  if (ubic === 'FOR') {
+    price = fca;
+    source = 'FCA';
+  } else if (ubic === 'MTO') {
+    price = dap;
+    source = 'DAP';
+  } else if (ubic === 'MTS') {
+    if (mts > 0) {
+      price = mts;
+      source = 'MTS';
+    } else {
+      price = dap;
+      source = 'DAP (MTS=0)';
+    }
+  }
+  
+  return { price, source };
+}
+
+function syncPrice() {
+  // Aggiorna il campo prezzo attivo in base alla selezione
+  const activeField = document.getElementById('purchase-price');
+  const hint = document.getElementById('price-hint');
+  const result = getActivePrice();
+  
+  activeField.value = result.price > 0 ? result.price : '';
+  hint.textContent = `Fonte: ${result.source}`;
+  
+  // Evidenzia il campo prezzo attivo
+  document.querySelectorAll('.price-field').forEach(el => el.classList.remove('active-price'));
+  const ubic = state.ubicazione;
+  const priceMap = { 'FOR': 'price-fca', 'MTO': 'price-dap', 'MTS': 'price-mts' };
+  const activeEl = document.getElementById(priceMap[ubic]);
+  if (activeEl) activeEl.classList.add('active-price');
+  
+  resetResults();
+  checkCanCalc();
+}
+
+// ─── FUNZIONI UOM ──────────────────────────────────────────────
+
 function getUnitsPerPallet(qtyPerBox, boxPerPallet) {
   if (state.uom === "KG") {
     const kgPerPallet = parseFloat(document.getElementById('kg-per-pallet').value);
@@ -591,6 +690,8 @@ function setUOM(btn) {
   checkCanCalc();
 }
 
+// ─── FUNZIONI UI ──────────────────────────────────────────────
+
 function setUbic(btn) {
   state.ubicazione = btn.dataset.ubic;
   const colors = { MTO: '#4A8C9B', FOR: '#6A9B4A', MTS: '#C4873B' };
@@ -605,6 +706,9 @@ function setUbic(btn) {
   btn.style.borderColor = c;
   btn.style.background = c + '22';
   btn.style.color = '#EEE';
+  
+  // Aggiorna il prezzo attivo
+  syncPrice();
   resetResults();
 }
 
@@ -699,7 +803,8 @@ function toggleAlcool() {
 }
 
 function checkCanCalc() {
-  const price = parseFloat(document.getElementById('purchase-price').value);
+  const result = getActivePrice();
+  const price = result.price;
   
   let unitsPerPallet = 0;
   if (state.uom === 'KG') {
@@ -727,7 +832,10 @@ function resetResults() {
 }
 
 function calculate() {
-  const price = parseFloat(document.getElementById('purchase-price').value);
+  const result = getActivePrice();
+  const price = result.price;
+  const priceSource = result.source;
+  
   const aiem = parseFloat(document.getElementById('aiem').value) || 0;
   
   const palletsPerTruck = parseFloat(document.getElementById('pallets-per-truck').value) || 32;
@@ -813,7 +921,7 @@ function calculate() {
         <span class="em">${C.ISLAND_FLAGS[key]}</span>
         <div class="name">${C.ISLAND_NAMES[key]}</div>
       </div>
-      ${row('Prezzo acquisto', price.toFixed(4), false, true)}
+      ${row('Prezzo acquisto (' + priceSource + ')', price.toFixed(4), false, true)}
       <div class="cost-divider"></div>
       ${row('Trasporto / unità', freightPerUnit.toFixed(4))}
       ${inlandPerUnit > 0 ? row('Inland + Dogana', inlandPerUnit.toFixed(4)) : ''}
@@ -933,17 +1041,32 @@ function row(label, val, bold, highlight) {
   return `<div class="${cls}" style="color:${color}"><span>${label}</span><span class="mono">€ ${val}</span></div>`;
 }
 
-// Input event listeners for PVP fields
+// ─── EVENT LISTENERS ───────────────────────────────────────────
+
+// PVP listeners
 document.getElementById('pvp-1').addEventListener('input', updateMargins);
 document.getElementById('pvp-2').addEventListener('input', updateMargins);
 
-// Existing input listeners
-document.getElementById('purchase-price').addEventListener('input', checkCanCalc);
-document.getElementById('qty-per-box').addEventListener('input', checkCanCalc);
-document.getElementById('box-per-pallet').addEventListener('input', checkCanCalc);
-document.getElementById('kg-per-pallet').addEventListener('input', checkCanCalc);
-document.getElementById('pallets-per-truck').addEventListener('input', checkCanCalc);
-document.getElementById('pallets-per-container').addEventListener('input', checkCanCalc);
+// Price fields listeners
+document.getElementById('price-fca-input').addEventListener('input', syncPrice);
+document.getElementById('price-dap-input').addEventListener('input', syncPrice);
+document.getElementById('price-mts-input').addEventListener('input', syncPrice);
+
+// Other input listeners
+document.getElementById('purchase-price').addEventListener('input', resetResults);
+document.getElementById('qty-per-box').addEventListener('input', resetResults);
+document.getElementById('box-per-pallet').addEventListener('input', resetResults);
+document.getElementById('kg-per-pallet').addEventListener('input', resetResults);
+document.getElementById('pallets-per-truck').addEventListener('input', resetResults);
+document.getElementById('pallets-per-container').addEventListener('input', resetResults);
+
+// ─── INIT ──────────────────────────────────────────────────────
+
+// Inizializza i campi prezzo e sincronizza
+document.addEventListener('DOMContentLoaded', function() {
+  syncPrice();
+  checkCanCalc();
+});
 </script>
 </body>
 </html>
