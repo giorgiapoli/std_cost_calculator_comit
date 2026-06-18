@@ -132,6 +132,65 @@
   .field input:focus { border-color: rgba(196,135,59,0.5); }
   .field .price-hint { font-size: 9px; color: var(--dim); margin-top: 2px; }
 
+  /* Price fields group - a tema con il resto */
+  .price-fields-group {
+    margin-top: 8px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(255,255,255,0.07);
+  }
+  .price-fields-group .price-field {
+    margin-bottom: 6px;
+    padding: 6px 10px;
+    border-radius: 6px;
+    transition: all 0.3s ease;
+    background: rgba(255,255,255,0.02);
+    border-left: 3px solid transparent;
+  }
+  .price-fields-group .price-field label {
+    font-size: 10px;
+    color: rgba(221,213,200,0.4);
+    display: block;
+    margin-bottom: 2px;
+  }
+  .price-fields-group .price-field input {
+    font-size: 13px;
+    padding: 6px 10px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 5px;
+    color: var(--text);
+    width: 100%;
+    outline: none;
+    font-family: inherit;
+    transition: border-color 0.3s;
+  }
+  .price-fields-group .price-field input:focus {
+    border-color: rgba(196,135,59,0.4);
+  }
+  .price-fields-group .price-field.active-price {
+    border-left-color: var(--gold);
+    background: rgba(196,135,59,0.06);
+  }
+  .price-fields-group .price-field.active-price label {
+    color: var(--gold);
+  }
+  .price-fields-group .price-field.active-price input {
+    border-color: rgba(196,135,59,0.3);
+    background: rgba(196,135,59,0.05);
+  }
+  .price-field .used-label {
+    font-size: 9px;
+    color: var(--gold);
+    font-weight: bold;
+    display: inline-block;
+    margin-left: 6px;
+    animation: pulse-gold 2s ease-in-out infinite;
+  }
+  @keyframes pulse-gold {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
   .inline-fields {
     display: flex;
     gap: 16px;
@@ -280,37 +339,6 @@
   }
   .pvp-update-btn:hover { background: rgba(74,155,108,0.3); }
 
-  .price-fields-group {
-    border-top: 1px solid rgba(255,255,255,0.07);
-    margin-top: 8px;
-    padding-top: 10px;
-  }
-  .price-fields-group .price-field {
-    margin-bottom: 6px;
-  }
-  .price-fields-group .price-field label {
-    font-size: 10px;
-    color: var(--dim);
-  }
-  .price-fields-group .price-field input {
-    font-size: 13px;
-    padding: 6px 10px;
-  }
-  .price-field.hidden { display: none; }
-  .price-field.active-price {
-    border-left: 3px solid var(--gold);
-    padding-left: 10px;
-    background: rgba(196,135,59,0.05);
-    border-radius: 4px;
-  }
-  .price-field .used-label {
-    font-size: 9px;
-    color: var(--gold);
-    font-weight: bold;
-    display: inline-block;
-    margin-left: 6px;
-  }
-
   @media (max-width: 600px) {
     .grid-2 { grid-template-columns: 1fr; }
     .grid-4 { grid-template-columns: repeat(2,1fr); }
@@ -371,16 +399,16 @@
       <div class="field" id="active-price-field">
         <label id="price-label">Prezzo acquisto per PEZZO (€)</label>
         <input type="number" id="purchase-price" placeholder="es. 2.50" oninput="resetResults()">
-        <div class="price-hint" id="price-hint">Fonte: DAP (lista fornitori)</div>
+        <div class="price-hint" id="price-hint">Fonte: DAP</div>
       </div>
 
-      <!-- Tutti i prezzi (FCA, DAP, MTS) - visibili in base alla selezione -->
+      <!-- Tutti i prezzi (FCA, DAP, MTS) - sempre visibili, uno evidenziato -->
       <div class="price-fields-group" id="price-fields-group">
         <div class="price-field" id="price-fca">
           <label>FCA <span style="font-size:9px;color:var(--dim);">(FOR)</span></label>
           <input type="number" id="price-fca-input" placeholder="es. 2.30" step="any" oninput="syncPrice()">
         </div>
-        <div class="price-field" id="price-dap">
+        <div class="price-field active-price" id="price-dap">
           <label>DAP <span style="font-size:9px;color:var(--dim);">(MTO / MTS se MTS=0)</span></label>
           <input type="number" id="price-dap-input" placeholder="es. 2.50" step="any" oninput="syncPrice()">
         </div>
@@ -614,7 +642,7 @@ function getActivePrice() {
 }
 
 function syncPrice() {
-  // Aggiorna il campo prezzo attivo in base alla selezione
+  // Aggiorna il campo prezzo attivo
   const activeField = document.getElementById('purchase-price');
   const hint = document.getElementById('price-hint');
   const result = getActivePrice();
@@ -689,8 +717,6 @@ function setUOM(btn) {
   resetResults();
   checkCanCalc();
 }
-
-// ─── FUNZIONI UI ──────────────────────────────────────────────
 
 function setUbic(btn) {
   state.ubicazione = btn.dataset.ubic;
@@ -1043,14 +1069,14 @@ function row(label, val, bold, highlight) {
 
 // ─── EVENT LISTENERS ───────────────────────────────────────────
 
-// PVP listeners
-document.getElementById('pvp-1').addEventListener('input', updateMargins);
-document.getElementById('pvp-2').addEventListener('input', updateMargins);
-
 // Price fields listeners
 document.getElementById('price-fca-input').addEventListener('input', syncPrice);
 document.getElementById('price-dap-input').addEventListener('input', syncPrice);
 document.getElementById('price-mts-input').addEventListener('input', syncPrice);
+
+// PVP listeners
+document.getElementById('pvp-1').addEventListener('input', updateMargins);
+document.getElementById('pvp-2').addEventListener('input', updateMargins);
 
 // Other input listeners
 document.getElementById('purchase-price').addEventListener('input', resetResults);
