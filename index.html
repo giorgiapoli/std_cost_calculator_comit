@@ -261,6 +261,9 @@
   .cost-row .mono { font-family: monospace; }
   .cost-divider { height: 1px; background: rgba(196,135,59,0.18); margin: 8px 0; }
 
+  .cost-row.markup { color: #4A9B6C; }
+  .cost-row.markup .mono { font-weight: bold; }
+
   .sc2-box {
     margin-top: 12px; padding: 14px;
     border-radius: 8px;
@@ -309,8 +312,8 @@
   .pvp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 12px; }
   .pvp-field { background: rgba(255,255,255,0.04); padding: 14px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06); }
   .pvp-field label { display: block; font-size: 11px; color: var(--muted); margin-bottom: 6px; }
-  .pvp-field input { 
-    width: 100%; padding: 8px 10px; 
+  .pvp-field input {
+    width: 100%; padding: 8px 10px;
     background: rgba(255,255,255,0.06);
     border: 1px solid var(--border);
     border-radius: 6px; color: var(--text);
@@ -493,7 +496,7 @@
         <div class="box-label">🚚 Trasporto</div>
         <button class="btn-radio active" data-tr="GOMMA" onclick="setTransport(this)" style="border-color:#4A8C9B;background:rgba(74,140,155,0.18);color:#EEE;">🚛 Camion (Gomma)</button>
         <button class="btn-radio" data-tr="MARE" onclick="setTransport(this)" id="btn-mare">🚢 Container (Mare)</button>
-        
+
         <div class="inline-fields">
           <div class="inline-field">
             <label>📦 Pallet per TRUCK</label>
@@ -549,7 +552,7 @@
   <div id="results">
     <div class="results-label">✦ Risultati — Standard Cost 2</div>
     <div class="grid-2" id="results-grid"></div>
-    
+
     <!-- PVP Section -->
     <div class="pvp-section" id="pvp-section">
       <div class="box-label">💰 Margine su Prezzo di Vendita</div>
@@ -575,7 +578,7 @@
       </div>
       <button class="pvp-update-btn" onclick="updateMargins()">🔄 Aggiorna Margini</button>
     </div>
-    
+
     <div class="disclaimer">
       ⚠️ <strong style="color:rgba(232,224,208,0.6)">Nota:</strong>
       Stima indicativa basata sui parametri del modello ufficiale.
@@ -602,6 +605,7 @@ const state = {
 const C = {
   VERONA_BARCELONA: 2000,
   PALLET_COST: 15,
+  AGREED_MARKUP_PCT: 2,
   FREIGHT_GOMMA: {
     GC:  { DRY: 133.692,  FRESH: 117,    FROZEN: 133.692  },
     TF:  { DRY: 133.692,  FRESH: 117,    FROZEN: 133.692  },
@@ -633,10 +637,10 @@ function getActivePrice() {
   const fca = parseFloat(document.getElementById('price-fca-input').value) || 0;
   const dap = parseFloat(document.getElementById('price-dap-input').value) || 0;
   const mts = parseFloat(document.getElementById('price-mts-input').value) || 0;
-  
+
   let price = 0;
   let source = '';
-  
+
   if (ubic === 'FOR') {
     price = fca;
     source = 'FCA';
@@ -652,7 +656,7 @@ function getActivePrice() {
       source = 'DAP (MTS=0)';
     }
   }
-  
+
   return { price, source };
 }
 
@@ -661,17 +665,17 @@ function syncPrice() {
   const activeField = document.getElementById('purchase-price');
   const hint = document.getElementById('price-hint');
   const result = getActivePrice();
-  
+
   activeField.value = result.price > 0 ? result.price : '';
   hint.textContent = `Fonte: ${result.source}`;
-  
+
   // Evidenzia il campo prezzo attivo
   document.querySelectorAll('.price-field').forEach(el => el.classList.remove('active-price'));
   const ubic = state.ubicazione;
   const priceMap = { 'FOR': 'price-fca', 'MTO': 'price-dap', 'MTS': 'price-mts' };
   const activeEl = document.getElementById(priceMap[ubic]);
   if (activeEl) activeEl.classList.add('active-price');
-  
+
   resetResults();
   checkCanCalc();
 }
@@ -747,7 +751,7 @@ function setUbic(btn) {
   btn.style.borderColor = c;
   btn.style.background = c + '22';
   btn.style.color = '#EEE';
-  
+
   // Aggiorna il prezzo attivo
   syncPrice();
   resetResults();
@@ -846,7 +850,7 @@ function toggleAlcool() {
 function checkCanCalc() {
   const result = getActivePrice();
   const price = result.price;
-  
+
   let unitsPerPallet = 0;
   if (state.uom === 'KG') {
     unitsPerPallet = parseFloat(document.getElementById('kg-per-pallet').value);
@@ -857,10 +861,10 @@ function checkCanCalc() {
     const box = parseFloat(document.getElementById('box-per-pallet').value);
     unitsPerPallet = qty * box;
   }
-  
+
   const anyIsland = Object.values(state.islands).some(v => v);
   const ok = price > 0 && unitsPerPallet > 0 && anyIsland;
-  
+
   const btn = document.getElementById('calc-btn');
   btn.disabled = !ok;
   btn.textContent = ok ? '✦  CALCOLA STANDARD COST' : 'Completa i campi per calcolare';
@@ -876,9 +880,9 @@ function calculate() {
   const result = getActivePrice();
   const price = result.price;
   const priceSource = result.source;
-  
+
   const aiem = parseFloat(document.getElementById('aiem').value) || 0;
-  
+
   const palletsPerTruck = parseFloat(document.getElementById('pallets-per-truck').value) || 32;
   const palletsPerContainer = parseFloat(document.getElementById('pallets-per-container').value) || 24;
 
@@ -892,7 +896,7 @@ function calculate() {
     const box = parseFloat(document.getElementById('box-per-pallet').value) || 0;
     unitsPerPallet = qty * box;
   }
-  
+
   if (!unitsPerPallet || !price) return;
 
   const alcLitri = state.hasAlcool ? (parseFloat(document.getElementById('alc-litri').value) || 0) : 0;
@@ -904,7 +908,7 @@ function calculate() {
   grid.innerHTML = '';
 
   state.calculatedCosts = {}; // Reset stored costs
-  
+
   let rendered = 0;
   islands.forEach(key => {
     if (!state.islands[key]) return;
@@ -949,9 +953,13 @@ function calculate() {
     }
 
     const step2 = step1 + wh;
-    
-    // Store the calculated cost for this island
-    state.calculatedCosts[key] = step2;
+
+    // Markup finale concordato (+2%) applicato sullo Standard Cost 2
+    const markupAmount = step2 * (C.AGREED_MARKUP_PCT / 100);
+    const step2Final = step2 + markupAmount;
+
+    // Store the calculated cost for this island (valore finale, con markup incluso)
+    state.calculatedCosts[key] = step2Final;
 
     const color = C.ISLAND_COLORS[key];
 
@@ -973,10 +981,13 @@ function calculate() {
       ${row('→ Standard Cost 1', step1.toFixed(4), true)}
       <div class="cost-divider"></div>
       ${whRows}
+      <div class="cost-divider"></div>
+      ${row('Standard Cost 2 (base)', step2.toFixed(4), true)}
+      ${row('+2% (concordato)', markupAmount.toFixed(4), false, false, true)}
       <div class="sc2-box" style="background:linear-gradient(135deg,${color}20,rgba(0,0,0,0.25));border:1px solid ${color}55;">
-        <div class="sc2-label">Standard Cost 2</div>
-        <div class="sc2-value">€ ${step2.toFixed(4)}</div>
-        <div class="sc2-sub">per ${state.uom}</div>
+        <div class="sc2-label">Standard Cost 2 Finale</div>
+        <div class="sc2-value">€ ${step2Final.toFixed(4)}</div>
+        <div class="sc2-sub">per ${state.uom} · incl. +2% concordato</div>
       </div>
     `;
     grid.appendChild(card);
@@ -995,30 +1006,30 @@ function calculate() {
 function setupPVPSection() {
   const group1 = C.ISLAND_GROUPS.group1;
   const group2 = C.ISLAND_GROUPS.group2;
-  
+
   const hasGroup1 = group1.some(island => state.islands[island]);
   const hasGroup2 = group2.some(island => state.islands[island]);
-  
+
   const pvpField1 = document.getElementById('pvp-field-1');
   const pvpField2 = document.getElementById('pvp-field-2');
-  
+
   // Show/hide PVP fields based on selected islands
   pvpField1.style.display = hasGroup1 ? 'block' : 'none';
   pvpField2.style.display = hasGroup2 ? 'block' : 'none';
-  
+
   // Update labels with island names
   if (hasGroup1) {
     const names = group1.filter(i => state.islands[i]).map(i => C.ISLAND_NAMES[i]);
     document.getElementById('pvp-label-1').textContent = `PVP 1 (${names.join(' · ')})`;
     document.getElementById('pvp-hint-1').textContent = `Isole: ${names.join(', ')}`;
   }
-  
+
   if (hasGroup2) {
     const names = group2.filter(i => state.islands[i]).map(i => C.ISLAND_NAMES[i]);
     document.getElementById('pvp-label-2').textContent = `PVP 2 (${names.join(' · ')})`;
     document.getElementById('pvp-hint-2').textContent = `Isole: ${names.join(', ')}`;
   }
-  
+
   // Reset PVP inputs
   document.getElementById('pvp-1').value = '';
   document.getElementById('pvp-2').value = '';
@@ -1029,10 +1040,10 @@ function setupPVPSection() {
 function updateMargins() {
   const pvp1 = parseFloat(document.getElementById('pvp-1').value);
   const pvp2 = parseFloat(document.getElementById('pvp-2').value);
-  
+
   const group1 = C.ISLAND_GROUPS.group1;
   const group2 = C.ISLAND_GROUPS.group2;
-  
+
   // Calculate margin for Group 1 (GC, TF)
   if (pvp1 && pvp1 > 0) {
     const avgCost1 = calculateAverageCost(group1);
@@ -1047,7 +1058,7 @@ function updateMargins() {
   } else {
     document.getElementById('margin-value-1').textContent = '—';
   }
-  
+
   // Calculate margin for Group 2 (LAN, FUE)
   if (pvp2 && pvp2 > 0) {
     const avgCost2 = calculateAverageCost(group2);
@@ -1076,8 +1087,10 @@ function calculateAverageCost(islandGroup) {
   return sum / costs.length;
 }
 
-function row(label, val, bold, highlight) {
-  const cls = bold ? 'cost-row bold' : 'cost-row';
+function row(label, val, bold, highlight, isMarkup) {
+  let cls = 'cost-row';
+  if (bold) cls += ' bold';
+  if (isMarkup) cls += ' markup';
   const color = highlight ? 'var(--text)' : '';
   return `<div class="${cls}" style="color:${color}"><span>${label}</span><span class="mono">€ ${val}</span></div>`;
 }
