@@ -500,7 +500,7 @@
         <div class="inline-fields">
           <div class="inline-field">
             <label>📦 Pallet per TRUCK</label>
-            <input type="number" id="pallets-per-truck" value="32" step="1" oninput="resetResults()">
+            <input type="number" id="pallets-per-truck" value="22" step="1" oninput="resetResults()">
           </div>
           <div class="inline-field">
             <label>📦 Pallet per CONTAINER</label>
@@ -613,9 +613,9 @@ const C = {
     FUE: { DRY: 190.254,  FRESH: 190.254,FROZEN: 271.4976 },
   },
   FREIGHT_MARE: {
-    GC_NORD: 2580.723404, GC_SUD: 2258.529412,
-    TF_NORD: 2580.723404, TF_SUD: 2258.529412,
-    LAN_NORD: 3521.4375,  FUE_NORD: 3521.4375,
+    GC_NORD: 3300, GC_SUD: 3080,
+    TF_NORD: 3300, TF_SUD: 3080,
+    LAN_NORD: 4510,  FUE_NORD: 4510,
   },
   INLAND: { GC: 762, TF: 762, LAN: 830, FUE: 830 },
   FUEL_SURCHARGE: 0.0284,
@@ -883,7 +883,7 @@ function calculate() {
 
   const aiem = parseFloat(document.getElementById('aiem').value) || 0;
 
-  const palletsPerTruck = parseFloat(document.getElementById('pallets-per-truck').value) || 32;
+  const palletsPerTruck = parseFloat(document.getElementById('pallets-per-truck').value) || 22;
   const palletsPerContainer = parseFloat(document.getElementById('pallets-per-container').value) || 24;
 
   let unitsPerPallet = 0;
