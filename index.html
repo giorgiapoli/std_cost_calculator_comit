@@ -357,6 +357,19 @@
   }
   .pvp-update-btn:hover { background: rgba(74,155,108,0.3); }
 
+
+
+  .lang-btn { padding: 7px 14px; background: rgba(255,255,255,0.06); border: 1px solid rgba(196,135,59,0.3); border-radius: 20px; color: var(--text); cursor: pointer; font-family: inherit; font-size: 12px; font-weight: bold; transition: all 0.2s; display: flex; align-items: center; gap: 6px; margin-left: auto; }
+  .lang-btn:hover { background: rgba(196,135,59,0.15); border-color: var(--gold); }
+
+  /* UoM del prezzo di acquisto */
+  .input-uom { position: relative; }
+  .input-uom input { padding-right: 78px !important; }
+  .uom-badge { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 10px; color: var(--gold); font-weight: bold; pointer-events: none; letter-spacing: .3px; }
+  .conv-panel { margin: 8px 0 12px; padding: 10px 12px; background: rgba(74,155,155,0.07); border: 1px solid rgba(74,155,155,0.22); border-radius: 8px; }
+  .conv-panel .field { margin-bottom: 8px; }
+  .conv-title { font-size: 10px; color: rgba(126,200,216,0.9); letter-spacing: 1px; margin-bottom: 8px; }
+
   @media (max-width: 600px) {
     .grid-2 { grid-template-columns: 1fr; }
     .grid-4 { grid-template-columns: repeat(2,1fr); }
@@ -386,6 +399,7 @@
     <div class="header-eyebrow">COMIT · Inalca Food & Beverage</div>
     <div class="header-title">Standard Cost Estimator · Canarie</div>
   </div>
+  <button class="lang-btn" id="langBtn" onclick="toggleLang()"><span id="langFlag">🇪🇸</span> <span id="langLabel">Español</span></button>
 </div>
 
 <div class="main">
@@ -442,19 +456,42 @@
       </div>
 
       <!-- Tutti i prezzi (FCA, DAP, MTS) - sempre visibili, uno evidenziato -->
+      <div class="field" id="price-uom-field" style="margin-top:10px;">
+        <label>📏 Il prezzo di acquisto si riferisce a:</label>
+        <div class="grid-3" id="price-uom-btns">
+          <button class="btn-toggle active" data-puom="PCS" onclick="setPriceUom('PCS')">🔢 PCS</button>
+          <button class="btn-toggle" data-puom="BOX" onclick="setPriceUom('BOX')">📦 BOX</button>
+          <button class="btn-toggle" data-puom="KG" onclick="setPriceUom('KG')">⚖️ KG</button>
+        </div>
+        <div class="price-hint" id="price-uom-hint"></div>
+      </div>
+
       <div class="price-fields-group" id="price-fields-group">
         <div class="price-field" id="price-fca">
           <label>FCA <span style="font-size:9px;color:var(--dim);">(FOR)</span></label>
-          <input type="number" id="price-fca-input" placeholder="es. 2.30" step="any" oninput="syncPrice()">
+          <div class="input-uom"><input type="number" id="price-fca-input" placeholder="es. 2.30" step="any" oninput="syncPrice()"><span class="uom-badge"></span></div>
         </div>
         <div class="price-field active-price" id="price-dap">
           <label>DAP <span style="font-size:9px;color:var(--dim);">(MTO / MTS se MTS=0)</span></label>
-          <input type="number" id="price-dap-input" placeholder="es. 2.50" step="any" oninput="syncPrice()">
+          <div class="input-uom"><input type="number" id="price-dap-input" placeholder="es. 2.50" step="any" oninput="syncPrice()"><span class="uom-badge"></span></div>
         </div>
         <div class="price-field" id="price-mts">
           <label>MTS <span style="font-size:9px;color:var(--dim);">(magazzino)</span></label>
-          <input type="number" id="price-mts-input" placeholder="es. 2.70" step="any" oninput="syncPrice()">
+          <div class="input-uom"><input type="number" id="price-mts-input" placeholder="es. 2.70" step="any" oninput="syncPrice()"><span class="uom-badge"></span></div>
         </div>
+      </div>
+
+      <div class="conv-panel" id="conv-panel" style="display:none;">
+        <div class="conv-title">🔁 CONVERSIONE DEL PREZZO</div>
+        <div class="field" id="cv-pcs-field" style="display:none;">
+          <label>Pezzi per cartone</label>
+          <input type="number" id="cv-pcs" placeholder="es. 12" step="any" oninput="resetResults()">
+        </div>
+        <div class="field" id="cv-kg-field" style="display:none;">
+          <label>Kg per cartone</label>
+          <input type="number" id="cv-kg" placeholder="es. 6" step="any" oninput="resetResults()">
+        </div>
+        <div class="price-hint" id="conv-result" style="margin:0;"></div>
       </div>
 
       <!-- Campi standard per PCS e BOX -->
@@ -618,8 +655,17 @@
       <div class="box">
         <div class="box-label">📦 Prezzo &amp; Contenenza</div>
         <div class="field">
-          <label>Prezzo acquisto per UoM di vendita (€) <span class="sub-note">listino + IC 2%</span></label>
-          <input type="number" id="ni-price" placeholder="es. 2.50" step="any" oninput="niChange()">
+          <label>📏 Il prezzo di acquisto si riferisce a:</label>
+          <div class="grid-3" id="ni-puom-btns">
+            <button class="btn-toggle active" data-nipuom="PCS" onclick="niSetPuom(this)">🔢 PCS</button>
+            <button class="btn-toggle" data-nipuom="BOX" onclick="niSetPuom(this)">📦 BOX</button>
+            <button class="btn-toggle" data-nipuom="KG" onclick="niSetPuom(this)">⚖️ KG</button>
+          </div>
+          <div class="price-hint" id="ni-puom-hint"></div>
+        </div>
+        <div class="field">
+          <label>Prezzo acquisto (€) <span class="sub-note">listino + IC 2%</span></label>
+          <div class="input-uom"><input type="number" id="ni-price" placeholder="es. 2.50" step="any" oninput="niChange()"><span class="uom-badge"></span></div>
         </div>
         <div class="field" id="ni-f-pcsBox" style="display:none;">
           <label>Pezzi per cartone</label>
@@ -740,8 +786,11 @@
 
 <script>
 const state = {
+  lang: 'it',
   mode: 'IFB',
   uom: "PCS",
+  priceUom: 'PCS',        // UoM a cui si riferisce il prezzo di acquisto
+  priceUomManual: false,  // false = segue l'UoM di vendita
   ubicazione: "MTO",
   temperature: "DRY",
   transport: "GOMMA",
@@ -781,7 +830,7 @@ const C = {
 
 // ─── FUNZIONI PREZZO ──────────────────────────────────────────────
 
-function getActivePrice() {
+function readRawPrice() {
   const ubic = state.ubicazione;
   const fca = parseFloat(document.getElementById('price-fca-input').value) || 0;
   const dap = parseFloat(document.getElementById('price-dap-input').value) || 0;
@@ -809,14 +858,57 @@ function getActivePrice() {
   return { price, source };
 }
 
-function syncPrice() {
+// ─── UoM DEL PREZZO DI ACQUISTO (con conversione) ──────────────
+const UOM_NAME = { PCS: 'pezzo', BOX: 'cartone', KG: 'kg' };
+const UOM_BADGE = { PCS: '€ / pezzo', BOX: '€ / cartone', KG: '€ / kg' };
+
+function convState() {
+  const from = state.priceUom || state.uom, to = state.uom;
+  const pcsBox = (to === 'PCS') ? (parseFloat(document.getElementById('qty-per-box').value) || 0) : (parseFloat(document.getElementById('cv-pcs').value) || 0);
+  const kgBox = parseFloat(document.getElementById('cv-kg').value) || 0;
+  return Object.assign({ from, to, pcsBox, kgBox }, uomFactor(from, to, pcsBox, kgBox));
+}
+
+function getActivePrice() {
+  const r = readRawPrice(), c = convState();
+  return { price: c.ok ? r.price * c.f : 0, raw: r.price, source: r.source, from: c.from, to: c.to, factor: c.f, convOk: c.ok };
+}
+
+function setPriceUom(u) {
+  state.priceUom = u;
+  state.priceUomManual = (u !== state.uom);
+  syncPrice();
+}
+
+function refreshPriceUom() {
+  const c = convState(), diff = c.from !== c.to;
+  document.querySelectorAll('#price-uom-btns .btn-toggle').forEach(b => b.classList.toggle('active', b.dataset.puom === c.from));
+  document.querySelectorAll('#price-fields-group .uom-badge').forEach(b => b.textContent = tr(UOM_BADGE[c.from]));
+  document.getElementById('conv-panel').style.display = diff ? '' : 'none';
+  document.getElementById('cv-pcs-field').style.display = (diff && c.need.pcsBox && c.to !== 'PCS') ? '' : 'none';
+  document.getElementById('cv-kg-field').style.display = (diff && c.need.kgBox) ? '' : 'none';
+  document.getElementById('price-uom-hint').textContent = diff
+    ? tr('Diversa dall\'unità di vendita: il prezzo viene convertito in € per ') + tr(UOM_NAME[c.to]) + '.'
+    : tr('Uguale all\'unità di vendita: nessuna conversione.');
+  const res = document.getElementById('conv-result'), raw = readRawPrice().price;
+  if (!diff) res.textContent = '';
+  else if (!c.ok) res.textContent = tr('⚠️ Inserisci i dati richiesti per convertire il prezzo.');
+  else if (raw > 0) res.textContent = tr('Prezzo convertito: € ') + raw.toFixed(4) + ' / ' + tr(UOM_NAME[c.from]) + ' → € ' + (raw * c.f).toFixed(4) + ' / ' + tr(UOM_NAME[c.to]);
+  else res.textContent = '';
+}
+
+function updatePriceDisplay() {
   // Aggiorna il campo prezzo attivo
   const activeField = document.getElementById('purchase-price');
   const hint = document.getElementById('price-hint');
   const result = getActivePrice();
 
-  activeField.value = result.price > 0 ? result.price : '';
-  hint.textContent = `Fonte: ${result.source}`;
+  refreshPriceUom();
+  activeField.value = result.price > 0 ? +result.price.toFixed(6) : '';
+  const baseName = tr({ PCS: 'PEZZO', BOX: 'CARTONE', KG: 'KG' }[state.uom]);
+  document.getElementById('price-label').textContent = (result.factor !== 1 && result.convOk)
+    ? tr('Prezzo convertito per ') + baseName + tr(' (€) — usato nel calcolo') : tr('Prezzo acquisto per ') + baseName + ' (€)';
+  hint.textContent = `${tr('Fonte')}: ${result.source}` + ((result.factor !== 1 && result.convOk) ? ' · € ' + result.raw.toFixed(4) + ' / ' + tr(UOM_NAME[result.from]) + tr(' → per ') + tr(UOM_NAME[result.to]) : '');
 
   // Evidenzia il campo prezzo attivo
   document.querySelectorAll('.price-field').forEach(el => el.classList.remove('active-price'));
@@ -825,6 +917,10 @@ function syncPrice() {
   const activeEl = document.getElementById(priceMap[ubic]);
   if (activeEl) activeEl.classList.add('active-price');
 
+}
+
+function syncPrice() {
+  updatePriceDisplay();
   resetResults();
   checkCanCalc();
 }
@@ -848,6 +944,7 @@ function getPickingDivisor(qtyPerBox) {
 
 function setUOM(btn) {
   state.uom = btn.dataset.uom;
+  if (!state.priceUomManual) state.priceUom = state.uom; else if (state.priceUom === state.uom) state.priceUomManual = false;
   document.querySelectorAll('#uom-btns .btn-toggle').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
 
@@ -863,27 +960,26 @@ function setUOM(btn) {
     qtyField.style.display = 'none';
     boxField.style.display = '';
     kgField.style.display = 'none';
-    priceLabel.textContent = 'Prezzo acquisto per CARTONE (€)';
-    boxLabel.textContent = 'Cartoni (BOX) per pallet';
-    hint.textContent = 'Prezzo per cartone/box. Divisore = box/pallet.';
+    priceLabel.textContent = tr('Prezzo acquisto per CARTONE (€)');
+    boxLabel.textContent = tr('Cartoni (BOX) per pallet');
+    hint.textContent = tr('Prezzo per cartone/box. Divisore = box/pallet.');
   } else if (state.uom === 'KG') {
     qtyField.style.display = 'none';
     boxField.style.display = 'none';
     kgField.style.display = '';
-    priceLabel.textContent = 'Prezzo acquisto per KG (€)';
-    boxLabel.textContent = 'Cartoni per pallet (non usato)';
-    hint.textContent = 'Inserisci il peso totale del pallet in Kg.';
+    priceLabel.textContent = tr('Prezzo acquisto per KG (€)');
+    boxLabel.textContent = tr('Cartoni per pallet (non usato)');
+    hint.textContent = tr('Inserisci il peso totale del pallet in Kg.');
   } else {
     qtyField.style.display = '';
     boxField.style.display = '';
     kgField.style.display = 'none';
-    priceLabel.textContent = 'Prezzo acquisto per PEZZO (€)';
-    qtyLabel.textContent = 'Pezzi per cartone';
-    boxLabel.textContent = 'Cartoni per pallet';
-    hint.textContent = 'Prezzo per singolo pezzo. Divisore = pz/cartone × cartoni/pallet.';
+    priceLabel.textContent = tr('Prezzo acquisto per PEZZO (€)');
+    qtyLabel.textContent = tr('Pezzi per cartone');
+    boxLabel.textContent = tr('Cartoni per pallet');
+    hint.textContent = tr('Prezzo per singolo pezzo. Divisore = pz/cartone × cartoni/pallet.');
   }
-  resetResults();
-  checkCanCalc();
+  syncPrice();
 }
 
 function setUbic(btn) {
@@ -977,7 +1073,7 @@ function toggleIsland(btn) {
 function updateFobWarn() {
   const warn = document.getElementById('fob-warn');
   let msg = '';
-  if (state.temperature === 'FROZEN' && state.transport === 'MARE') msg = '⚠️ Container (Mare) non disponibile per prodotti Frozen.';
+  if (state.temperature === 'FROZEN' && state.transport === 'MARE') msg = tr('⚠️ Container (Mare) non disponibile per prodotti Frozen.');
   warn.textContent = msg;
   warn.classList.toggle('visible', !!msg);
 }
@@ -1017,10 +1113,11 @@ function checkCanCalc() {
 
   const btn = document.getElementById('calc-btn');
   btn.disabled = !ok;
-  btn.textContent = ok ? '✦  CALCOLA STANDARD COST' : 'Completa i campi per calcolare';
+  btn.textContent = ok ? tr('✦  CALCOLA STANDARD COST') : tr('Completa i campi per calcolare');
 }
 
 function resetResults() {
+  if (typeof updatePriceDisplay === 'function') updatePriceDisplay();
   const niR = document.getElementById('ni-results'); if (niR) niR.classList.remove('visible');
   const niP = document.getElementById('ni-pvp-section'); if (niP) niP.classList.remove('visible');
   document.getElementById('results').classList.remove('visible');
@@ -1033,6 +1130,9 @@ function calculate() {
   const result = getActivePrice();
   const price = result.price;
   const priceSource = result.source;
+  const priceRows = (result.factor !== 1)
+    ? row(tr('Prezzo acquisto (') + priceSource + tr(') · per ') + tr(UOM_NAME[result.from]), result.raw.toFixed(4), false, true) + row(tr('↳ convertito · per ') + tr(UOM_NAME[result.to]), price.toFixed(4))
+    : row(tr('Prezzo acquisto (') + priceSource + ')', price.toFixed(4), false, true);
 
   const aiem = parseFloat(document.getElementById('aiem').value) || 0;
 
@@ -1100,9 +1200,9 @@ function calculate() {
       const i = C.MTS_I[temp] / unitsPerPallet;
       const p = C.MTS_P[temp] / pickDiv;
       wh = d + i + p;
-      whRows = row('🏭 Deposito', d.toFixed(4)) + row('🏭 Inbound', i.toFixed(4)) + row('🏭 Picking', p.toFixed(4));
+      whRows = row(tr('🏭 Deposito'), d.toFixed(4)) + row('🏭 Inbound', i.toFixed(4)) + row('🏭 Picking', p.toFixed(4));
     } else {
-      whRows = '<div class="cost-row" style="font-style:italic;color:var(--dim)"><span>🚛 FOR — nessun handling</span></div>';
+      whRows = '<div class="cost-row" style="font-style:italic;color:var(--dim)"><span>' + tr('🚛 FOR — nessun handling') + '</span></div>';
     }
 
     const step2 = step1 + wh;
@@ -1123,12 +1223,12 @@ function calculate() {
         <span class="em">${C.ISLAND_FLAGS[key]}</span>
         <div class="name">${C.ISLAND_NAMES[key]}</div>
       </div>
-      ${row('Prezzo acquisto (' + priceSource + ')', price.toFixed(4), false, true)}
+      ${priceRows}
       <div class="cost-divider"></div>
-      ${row('Trasporto / unità', freightPerUnit.toFixed(4))}
-      ${inlandPerUnit > 0 ? row('Inland + Dogana', inlandPerUnit.toFixed(4)) : ''}
-      ${row('Costo pallet / unità', palletPerUnit.toFixed(4))}
-      ${alcTassaPerUnit > 0 ? row('🍷 Tassa alcolici AIEM (' + alcGrado + '° · ' + alcLitri + 'Lt)', alcTassaPerUnit.toFixed(4)) : ''}
+      ${row(tr('Trasporto /') + ' ' + tr(UOM_NAME[state.uom]), freightPerUnit.toFixed(4))}
+      ${inlandPerUnit > 0 ? row(tr('Inland + Dogana'), inlandPerUnit.toFixed(4)) : ''}
+      ${row(tr('Costo pallet /') + ' ' + tr(UOM_NAME[state.uom]), palletPerUnit.toFixed(4))}
+      ${alcTassaPerUnit > 0 ? row(tr('🍷 Tassa alcolici AIEM (') + alcGrado + '° · ' + alcLitri + 'Lt)', alcTassaPerUnit.toFixed(4)) : ''}
       ${aiemPerUnit > 0 ? row('AIEM (' + aiem + '%)', aiemPerUnit.toFixed(4)) : ''}
       <div class="cost-divider"></div>
       ${row('→ Standard Cost 1', step1.toFixed(4), true)}
@@ -1136,11 +1236,11 @@ function calculate() {
       ${whRows}
       <div class="cost-divider"></div>
       ${row('Standard Cost 2 (base)', step2.toFixed(4), true)}
-      ${row('+2% (concordato)', markupAmount.toFixed(4), false, false, true)}
+      ${row(tr('+2% (concordato)'), markupAmount.toFixed(4), false, false, true)}
       <div class="sc2-box" style="background:linear-gradient(135deg,${color}20,rgba(0,0,0,0.25));border:1px solid ${color}55;">
-        <div class="sc2-label">Standard Cost 2 Finale</div>
+        <div class="sc2-label">${tr('Standard Cost 2 Finale')}</div>
         <div class="sc2-value">€ ${step2Final.toFixed(4)}</div>
-        <div class="sc2-sub">per ${state.uom} · incl. +2% concordato</div>
+        <div class="sc2-sub">${tr('per')} ${state.uom} · ${tr('incl. +2% concordato')}</div>
       </div>
     `;
     grid.appendChild(card);
@@ -1174,13 +1274,13 @@ function setupPVPSection() {
   if (hasGroup1) {
     const names = group1.filter(i => state.islands[i]).map(i => C.ISLAND_NAMES[i]);
     document.getElementById('pvp-label-1').textContent = `PVP 1 (${names.join(' · ')})`;
-    document.getElementById('pvp-hint-1').textContent = `Isole: ${names.join(', ')}`;
+    document.getElementById('pvp-hint-1').textContent = `${tr('Isole')}: ${names.join(', ')}`;
   }
 
   if (hasGroup2) {
     const names = group2.filter(i => state.islands[i]).map(i => C.ISLAND_NAMES[i]);
     document.getElementById('pvp-label-2').textContent = `PVP 2 (${names.join(' · ')})`;
-    document.getElementById('pvp-hint-2').textContent = `Isole: ${names.join(', ')}`;
+    document.getElementById('pvp-hint-2').textContent = `${tr('Isole')}: ${names.join(', ')}`;
   }
 
   // Reset PVP inputs
@@ -1268,6 +1368,7 @@ document.getElementById('pallets-per-container').addEventListener('input', reset
 
 // ─── NON IFB ───────────────────────────────────────────────────
 // ==NI-CORE-START==
+const _t = (typeof tr === 'function') ? tr : (s => s);
 const NI = {
   MARKUP_PCT: 2,            // +2% concordato
   DAP_DIVISOR: 0.98,        // DAP Almacén: Std = prezzo / 0,98
@@ -1283,6 +1384,24 @@ const NI = {
   },
   LABELS: { pcsBox: 'pezzi per cartone', boxPlt: 'cartoni per pallet', kgBox: 'kg per cartone', kgPlt: 'kg per pallet', pltCont: 'pallet per container' },
 };
+
+// prezzo per UoM di vendita = prezzo per UoM del prezzo × f
+function uomFactor(from, to, pcsBox, kgBox) {
+  if (from === to) return { ok: true, f: 1, need: {} };
+  const pair = [from, to].sort().join('-');
+  const need = {};
+  if (pair === 'BOX-PCS' || pair === 'KG-PCS') need.pcsBox = true;
+  if (pair === 'BOX-KG' || pair === 'KG-PCS') need.kgBox = true;
+  if (!((!need.pcsBox || pcsBox > 0) && (!need.kgBox || kgBox > 0))) return { ok: false, f: 0, need };
+  let f = 1;
+  if (from === 'BOX' && to === 'PCS') f = 1 / pcsBox;
+  else if (from === 'PCS' && to === 'BOX') f = pcsBox;
+  else if (from === 'KG' && to === 'BOX') f = kgBox;
+  else if (from === 'BOX' && to === 'KG') f = 1 / kgBox;
+  else if (from === 'KG' && to === 'PCS') f = kgBox / pcsBox;
+  else if (from === 'PCS' && to === 'KG') f = pcsBox / kgBox;
+  return { ok: true, f, need };
+}
 
 // campi necessari in base a come viaggia la merce (ship) e all'UoM di vendita
 function niNeeds(ship, uom) {
@@ -1300,22 +1419,29 @@ function niNeeds(ship, uom) {
 }
 
 function calcNonIfb(p) {
-  const price = Number(p.price) || 0;
-  if (!(price > 0)) return { ok: false, code: 'PRICE', error: 'Inserisci il prezzo di acquisto.' };
-  if (!p.carrier) return { ok: false, code: 'CARRIER', error: 'Seleziona il trasportatore.' };
+  const rawPrice = Number(p.price) || 0;
+  if (!(rawPrice > 0)) return { ok: false, code: 'PRICE', error: _t('Inserisci il prezzo di acquisto.') };
+  const pu = p.priceUom || p.uom;
+  const cf = uomFactor(pu, p.uom, +p.pcsBox || 0, +p.kgBox || 0);
+  if (!cf.ok) {
+    const miss = Object.keys(cf.need).filter(k => !(+p[k] > 0));
+    return { ok: false, code: 'CONV', missing: miss, error: _t('Inserisci: ') + miss.map(k => _t(NI.LABELS[k])).join(', ') + _t(' per convertire il prezzo.') };
+  }
+  const price = rawPrice * cf.f;
+  if (!p.carrier) return { ok: false, code: 'CARRIER', error: _t('Seleziona il trasportatore.') };
   const mk = NI.MARKUP_PCT / 100;
 
   if (p.carrier === 'DAP ALMACEN') {
     const std = price / NI.DAP_DIVISOR;
-    return { ok: true, dap: true, price, tariff: 0, ship: null, logistics: 0, aiem: 0, excise: 0,
+    return { ok: true, dap: true, price, priceRaw: rawPrice, priceFrom: pu, priceTo: p.uom, convFactor: cf.f, tariff: 0, ship: null, logistics: 0, aiem: 0, excise: 0,
              std, markupAmount: std * mk, stdPlus: std + std * mk };
   }
 
   const c = NI.CARRIERS[p.carrier];
-  if (!c) return { ok: false, code: 'CARRIER', error: 'Trasportatore non riconosciuto.' };
+  if (!c) return { ok: false, code: 'CARRIER', error: _t('Trasportatore non riconosciuto.') };
   const tariff = c.tariffs[p.temp];
   if (tariff === undefined) {
-    return { ok: false, code: 'TARIFF', error: 'Nel modello non c\'è una tariffa per ' + p.carrier + ' con temperatura ' + p.temp + '.' };
+    return { ok: false, code: 'TARIFF', error: _t('Nel modello non c\'è una tariffa per ') + p.carrier + _t(' con temperatura ') + p.temp + '.' };
   }
 
   let logistics = 0;
@@ -1324,7 +1450,7 @@ function calcNonIfb(p) {
     const v = { pcsBox: +p.pcsBox || 0, boxPlt: +p.boxPlt || 0, kgBox: +p.kgBox || 0, kgPlt: +p.kgPlt || 0, pltCont: +p.pltCont || 0 };
     const missing = Object.keys(need).filter(k => !(v[k] > 0));
     if (missing.length) {
-      return { ok: false, code: 'DATA', missing, error: 'Inserisci: ' + missing.map(k => NI.LABELS[k]).join(', ') + '.' };
+      return { ok: false, code: 'DATA', missing, error: _t('Inserisci: ') + missing.map(k => _t(NI.LABELS[k])).join(', ') + '.' };
     }
     if (c.ship === 'KG') {
       logistics = p.uom === 'KG' ? tariff : (p.uom === 'PCS' ? tariff * v.kgBox / v.pcsBox : tariff * v.kgBox);
@@ -1339,7 +1465,7 @@ function calcNonIfb(p) {
   const aiem = (price + logistics) * ((+p.aiemPct || 0) / 100);
   const excise = p.spirits ? (+p.spirits.lt || 0) * ((+p.spirits.grado || 0) / 100) * (NI.ALC_PER_HL / 100) : 0;
   const std = price + logistics + aiem + excise;
-  return { ok: true, dap: false, price, tariff, ship: c.ship, logistics, aiem, excise,
+  return { ok: true, dap: false, price, priceRaw: rawPrice, priceFrom: pu, priceTo: p.uom, convFactor: cf.f, tariff, ship: c.ship, logistics, aiem, excise,
            std, markupAmount: std * mk, stdPlus: std + std * mk };
 }
 // ==NI-CORE-END==
@@ -1347,7 +1473,7 @@ function calcNonIfb(p) {
 const NI_VENDORS = [["HOSTERIA BUTTARELLI S.L.", "DAP", "DAP ALMACEN", ""], ["LA MOLISANA S.p.A.", "DAP", "MPG MOLISANA", "CONTAINER"], ["TECALI S.L.", "EXW", "TECALI", "PALLET"], ["IMPORTACIÓN CONGELADOS PREMIUM S.L.", "DAP", "TRANSMEDITERRANEA", "PALLET"], ["ARCECARNE S.L.", "FCA", "FRIPECAN", "KG"], ["MENCEYES FOOD COMPANY, SL", "DAP", "DAP ALMACEN", ""], ["SEGAFREDO ZANETTI (PORTUGAL) COM E DIST DE CAFÉ SA", "FCA", "FRIPECAN", "KG"], ["BELLOTERRA DELICATESSEN S.L.", "FCA", "FRIPECAN", "KG"], ["PANNA & POMODORO. S.L.", "EXW", "DAP ALMACEN", ""], ["NESTLÉ WATERS ESPAÑA S.A.", "FCA", "MPG NESTLE", "CONTAINER"], ["PREMIUM DRINKS. S.L.U.", "DAP", "DAP ALMACEN", ""], ["CAMPOFRIO FOOD GROUP SA", "DAP", "DAP ALMACEN", ""], ["CASA SANTOÑA, S.L.", "FCA", "FRIPECAN", "KG"], ["MANSUETO GROUP S.L.", "DAP", "DAP ALMACEN", ""], ["LAUMONT S.L.U.", "FCA", "FRIPECAN", "KG"], ["MEDIAPIZZA S.C.", "DAP", "DAP ALMACEN", ""], ["SACESA SELECCION SL", "DAP", "DAP ALMACEN", ""], ["COLLVERD, PRODUCTES DE LÁMEC, S.A.", "FCA", "FRIPECAN", "KG"], ["SKI COMERCIAL.I.S.A.", "DAP", "FRIPECAN", "KG"], ["AHUMADOS CANARIOS, SA", "DAP", "DAP ALMACEN", ""], ["FERGLOBAL SLU", "DAP", "DAP ALMACEN", ""], ["ISLA FISH IMPORT & EXPORT SL", "DAP", "DAP ALMACEN", ""], ["EL COCHINILLO SEGOVIANO S.L.", "FCA", "FRIPECAN", "KG"], ["AMAGOLDIAMADO GONZALEZ DIAZ E HIJOS", "DAP", "DAP ALMACEN", ""], ["PEÑAMAR DEL ATLANTICO, S.L.", "DAP", "DAP ALMACEN", ""], ["ANCHOAS DE SANTOÑA SL", "DAP", "DAP ALMACEN", ""], ["LICORERIA ARTESANAL EL JARAL", "DAP", "DAP ALMACEN", ""], ["OASISFISH S.L.", "DAP", "DAP ALMACEN", ""], ["EL PANTAR SAT N 1043 CAT", "FCA", "FRIPECAN", "KG"], ["TOBACORP, S.L.", "DAP", "FRIPECAN", "KG"], ["MEATLAMB SL", "FCA", "FRIPECAN", "KG"], ["INTERATLANTIC FISH SLU", "FCA", "FRIPECAN", "KG"], ["HARINERA CANARIA S.A.", "DAP", "DAP ALMACEN", ""], ["CONGELADOS NORIBERICA, S.A.", "DAP", "DAP ALMACEN", ""], ["P. PORXAS PAIROS S.L.", "FCA", "TRANSMEDITERRANEA", "PALLET"], ["PESCAPUERTA TRADE S.L.", "DAP", "DAP ALMACEN", ""], ["PRODUCTOS LACTEOS CANARIAS SL", "DAP", "DAP ALMACEN", ""], ["INSULAR CANARIAS DE BEBIDAS. S.A.", "DAP", "DAP ALMACEN", ""], ["JUALEX CANARIAS S L", "DAP", "DAP ALMACEN", ""], ["COMPRE Y COMPARE S.A.U.", "DAP", "DAP ALMACEN", ""], ["DIFRAMI, S.L.", "DAP", "DAP ALMACEN", ""], ["GREAT SPIRIT DRINKS S.L.", "DAP", "DAP ALMACEN", ""], ["JUAN MARTINEZ S.L.", "DAP", "DAP ALMACEN", ""], ["CASA SANTOÑA, S.L.", "FCA", "FRIPECAN", "KG"], ["MASSIMO ZANETTI BEVERAGE IBERIA, S.A.", "FCA", "FRIPECAN", "KG"]];
 const NI_CARRIER_NAMES = { 'DAP ALMACEN': 'DAP Almacén', 'FRIPECAN': 'Fripecan', 'TRANSMEDITERRANEA': 'Transmediterránea', 'TECALI': 'Tecali', 'P&P': 'P&P', 'MPG NESTLE': 'MPG Nestlé', 'MPG MOLISANA': 'MPG Molisana' };
 const NI_UNIT = { KG: '€/kg', PALLET: '€/pallet', CONTAINER: '€/container' };
-const niState = { temp: 'DRY', uom: 'PCS', spirits: false };
+const niState = { temp: 'DRY', uom: 'PCS', puom: 'PCS', puomManual: false, spirits: false };
 
 function niInit() {
   const dl = document.getElementById('ni-vendor-list');
@@ -1374,8 +1500,15 @@ function niSetTemp(btn) {
   niChange();
 }
 
+function niSetPuom(btn) {
+  niState.puom = btn.dataset.nipuom;
+  niState.puomManual = (niState.puom !== niState.uom);
+  niChange();
+}
+
 function niSetUom(btn) {
   niState.uom = btn.dataset.niuom;
+  if (!niState.puomManual) niState.puom = niState.uom; else if (niState.puom === niState.uom) niState.puomManual = false;
   document.querySelectorAll('#ni-uom-btns .btn-toggle').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   niChange();
@@ -1398,7 +1531,7 @@ function niVendorChange() {
   const v = NI_VENDORS.find(x => x[0].toLowerCase() === name);
   if (v) {
     document.getElementById('ni-carrier').value = v[2];
-    hint.textContent = '✅ Resa ' + v[1] + ' · trasportatore ' + (NI_CARRIER_NAMES[v[2]] || v[2]) + (v[3] ? ' · spedizione a ' + v[3].toLowerCase() : '');
+    hint.textContent = tr('✅ Resa ') + v[1] + tr(' · trasportatore ') + (NI_CARRIER_NAMES[v[2]] || v[2]) + (v[3] ? tr(' · spedizione a ') + tr(v[3].toLowerCase()) : '');
   } else {
     hint.textContent = '';
   }
@@ -1411,7 +1544,7 @@ function niCollect() {
   return {
     carrier: document.getElementById('ni-carrier').value,
     temp: niState.temp, uom: niState.uom,
-    price: niNum('ni-price'),
+    price: niNum('ni-price'), priceUom: niState.puom,
     pcsBox: niNum('ni-pcs-box'), boxPlt: niNum('ni-box-plt'), kgBox: niNum('ni-kg-box'), kgPlt: niNum('ni-kg-plt'),
     pltCont: niNum('ni-plt-cont') || NI.PLT_PER_CONTAINER,
     aiemPct: niNum('ni-aiem'),
@@ -1422,23 +1555,33 @@ function niCollect() {
 function niUpdateFields() {
   const carrier = document.getElementById('ni-carrier').value;
   const c = NI.CARRIERS[carrier];
-  const need = c ? niNeeds(c.ship, niState.uom) : {};
+  const need = Object.assign({}, c ? niNeeds(c.ship, niState.uom) : {}, uomFactor(niState.puom, niState.uom, 1, 1).need);
+  niRefreshPuom();
   ['pcsBox', 'boxPlt', 'kgBox', 'kgPlt', 'pltCont'].forEach(k => {
     document.getElementById('ni-f-' + k).style.display = need[k] ? '' : 'none';
   });
   const ch = document.getElementById('ni-carrier-hint');
   const fh = document.getElementById('ni-fields-hint');
   if (carrier === 'DAP Almacen' || carrier === 'DAP ALMACEN') {
-    ch.textContent = 'Nessun costo di trasporto: Std Cost = prezzo ÷ 0,98.';
-    fh.textContent = 'Per DAP Almacén basta il prezzo di acquisto.';
+    ch.textContent = tr('Nessun costo di trasporto: Std Cost = prezzo ÷ 0,98.');
+    fh.textContent = tr('Per DAP Almacén basta il prezzo di acquisto.');
   } else if (c) {
     const t = c.tariffs;
-    ch.textContent = 'Tariffa ' + NI_UNIT[c.ship] + ': ' + Object.keys(t).map(k => k + ' ' + String(t[k]).replace('.', ',')).join(' · ');
-    fh.textContent = Object.keys(need).length ? 'Servono i dati di pallettizzazione (da item card NAV) per ripartire il trasporto sull\'UoM di vendita.' : 'La tariffa è già per kg: nessun dato di pallettizzazione necessario.';
+    ch.textContent = tr('Tariffa ') + tr(NI_UNIT[c.ship]) + ': ' + Object.keys(t).map(k => k + ' ' + String(t[k]).replace('.', ',')).join(' · ');
+    fh.textContent = Object.keys(need).length ? tr('Servono i dati di pallettizzazione (da item card NAV) per ripartire il trasporto sull\'UoM di vendita.') : tr('La tariffa è già per kg: nessun dato di pallettizzazione necessario.');
   } else {
     ch.textContent = '';
-    fh.textContent = 'Seleziona il trasportatore e l\'unità di misura: compariranno solo i campi necessari al calcolo.';
+    fh.textContent = tr('Seleziona il trasportatore e l\'unità di misura: compariranno solo i campi necessari al calcolo.');
   }
+}
+
+function niRefreshPuom() {
+  const diff = niState.puom !== niState.uom;
+  document.querySelectorAll('#ni-puom-btns .btn-toggle').forEach(b => b.classList.toggle('active', b.dataset.nipuom === niState.puom));
+  document.querySelectorAll('#ni-inputs .uom-badge').forEach(b => b.textContent = tr({ PCS: '€ / pezzo', BOX: '€ / cartone', KG: '€ / kg' }[niState.puom]));
+  document.getElementById('ni-puom-hint').textContent = diff
+    ? tr('Diversa dall\'unità di vendita: il prezzo viene convertito in € per ') + tr({ PCS: 'pezzo', BOX: 'cartone', KG: 'kg' }[niState.uom]) + '.'
+    : tr('Uguale all\'unità di vendita: nessuna conversione.');
 }
 
 function niChange() {
@@ -1451,7 +1594,7 @@ function niCheckCanCalc() {
   const res = calcNonIfb(niCollect());
   const btn = document.getElementById('calc-btn');
   btn.disabled = !res.ok;
-  btn.textContent = res.ok ? '✦  CALCOLA STANDARD COST' : 'Completa i campi per calcolare';
+  btn.textContent = res.ok ? tr('✦  CALCOLA STANDARD COST') : tr('Completa i campi per calcolare');
   const w = document.getElementById('ni-warn');
   const show = !res.ok && res.code !== 'PRICE' && res.code !== 'CARRIER' && niNum('ni-price') > 0;
   w.textContent = show ? (res.code === 'TARIFF' ? '⚠️ ' : 'ℹ️ ') + res.error : '';
@@ -1464,24 +1607,27 @@ function niCalculate() {
   if (!r.ok) { niCheckCanCalc(); return; }
   const name = NI_CARRIER_NAMES[p.carrier] || p.carrier;
   const color = '#C4873B';
-  let rows = row('Prezzo acquisto (incluso IC)', r.price.toFixed(4), false, true);
+  const upn = { PCS: tr('pezzo'), BOX: tr('cartone'), KG: tr('kg') };
+  let rows = (r.convFactor !== 1)
+    ? row(tr('Prezzo acquisto (incluso IC) · per ') + upn[r.priceFrom], r.priceRaw.toFixed(4), false, true) + row(tr('↳ convertito · per ') + upn[r.priceTo], r.price.toFixed(4))
+    : row(tr('Prezzo acquisto (incluso IC)'), r.price.toFixed(4), false, true);
   if (r.dap) {
-    rows += '<div class="cost-divider"></div>' + row('Maggiorazione DAP Almacén (÷ 0,98)', (r.std - r.price).toFixed(4));
+    rows += '<div class="cost-divider"></div>' + row(tr('Maggiorazione DAP Almacén (÷ 0,98)'), (r.std - r.price).toFixed(4));
   } else {
-    rows += '<div class="cost-divider"></div>' + row('Logistica / unità (' + name + ' · ' + String(r.tariff).replace('.', ',') + ' ' + NI_UNIT[r.ship] + ')', r.logistics.toFixed(4));
+    rows += '<div class="cost-divider"></div>' + row(tr('Logistica /') + ' ' + upn[r.priceTo] + ' (' + name + ' · ' + String(r.tariff).replace('.', ',') + ' ' + tr(NI_UNIT[r.ship]) + ')', r.logistics.toFixed(4));
     if (r.aiem > 0) rows += row('AIEM (' + p.aiemPct + '%)', r.aiem.toFixed(4));
-    if (r.excise > 0) rows += row('🥃 Accisa spirits (' + p.spirits.grado + '° · ' + p.spirits.lt + 'Lt)', r.excise.toFixed(4));
+    if (r.excise > 0) rows += row(tr('🥃 Accisa spirits (') + p.spirits.grado + '° · ' + p.spirits.lt + 'Lt)', r.excise.toFixed(4));
   }
   rows += '<div class="cost-divider"></div>' + row('→ Standard Cost', r.std.toFixed(4), true);
-  rows += row('+2% (concordato)', r.markupAmount.toFixed(4), false, false, true);
+  rows += row(tr('+2% (concordato)'), r.markupAmount.toFixed(4), false, false, true);
   document.getElementById('ni-card').innerHTML =
     '<div class="result-card">' +
-      '<div class="result-island"><span class="em">🛒</span><div class="name">NON IFB · ' + name + '</div></div>' +
+      '<div class="result-island"><span class="em">🛒</span><div class="name">' + tr('NON IFB · ') + name + '</div></div>' +
       rows +
       '<div class="sc2-box" style="background:linear-gradient(135deg,' + color + '20,rgba(0,0,0,0.25));border:1px solid ' + color + '55;">' +
         '<div class="sc2-label">Standard Cost +2%</div>' +
         '<div class="sc2-value">€ ' + r.stdPlus.toFixed(4) + '</div>' +
-        '<div class="sc2-sub">per ' + p.uom + ' · incl. +2% concordato</div>' +
+        '<div class="sc2-sub">' + tr('per') + ' ' + p.uom + ' · ' + tr('incl. +2% concordato') + '</div>' +
       '</div>' +
     '</div>';
   window.__niLast = r;
@@ -1502,10 +1648,234 @@ function niMargin() {
   el.className = 'margin-value' + (m < 0 ? ' negative' : '');
 }
 
+// ─── LINGUA (IT / ES) ─────────────────────────────────────────
+const ES = {
+ "Standard Cost Estimator · Canarie": "Standard Cost Estimator · Canarias",
+ "🏷️ Tipologia prodotti": "🏷️ Tipo de productos",
+ "🏭 Prodotti IFB": "🏭 Productos IFB",
+ "calcolo per isola · gomma / mare": "cálculo por isla · carretera / mar",
+ "🛒 Prodotti NON IFB": "🛒 Productos NO IFB",
+ "fornitori terzi · per trasportatore": "proveedores terceros · por transportista",
+ "📐 Unità di Misura (UOM)": "📐 Unidad de Medida (UOM)",
+ "Prezzo per singolo pezzo. Divisore = pz/cartone × cartoni/pallet.": "Precio por pieza. Divisor = pz/caja × cajas/palet.",
+ "🏭 Gestione Magazzino": "🏭 Gestión de Almacén",
+ "Costo In+Stock+Out per pallet · usa prezzo DAP": "Coste In+Stock+Out por palet · usa precio DAP",
+ "🚛 FOR — Franco fornitore": "🚛 FOR — Franco proveedor",
+ "Nessun costo handling aggiunto · usa prezzo FCA": "Sin coste de handling añadido · usa precio FCA",
+ "🏭 MTS — Magazzino": "🏭 MTS — Almacén",
+ "Deposito + Inbound + Picking · usa prezzo MTS (o DAP se 0)": "Depósito + Inbound + Picking · usa precio MTS (o DAP si es 0)",
+ "📦 Prezzo & Contenenza": "📦 Precio y Paletización",
+ "Prezzo acquisto per PEZZO (€)": "Precio de compra por PIEZA (€)",
+ "Fonte: DAP": "Fuente: DAP",
+ "📏 Il prezzo di acquisto si riferisce a:": "📏 El precio de compra se refiere a:",
+ "(MTO / MTS se MTS=0)": "(MTO / MTS si MTS=0)",
+ "(magazzino)": "(almacén)",
+ "🔁 CONVERSIONE DEL PREZZO": "🔁 CONVERSIÓN DEL PRECIO",
+ "Pezzi per cartone": "Piezas por caja",
+ "Kg per cartone": "Kg por caja",
+ "Cartoni per pallet": "Cajas por palet",
+ "⚖️ Kg per pallet": "⚖️ Kg por palet",
+ "Kg per pallet": "Kg por palet",
+ "Peso totale del pallet in kg (es: 4kg/box × 180 box/pallet = 720kg)": "Peso total del palet en kg (p. ej.: 4kg/caja × 180 cajas/palet = 720kg)",
+ "Aliquota AIEM % (0 = esenzione)": "Tipo AIEM % (0 = exención)",
+ "Aliquota AIEM %": "Tipo AIEM %",
+ "(0 = esenzione)": "(0 = exención)",
+ "🍷 Tassa alcolici (Beverage)": "🍷 Impuesto sobre alcoholes (Beverage)",
+ "Formula:": "Fórmula:",
+ "Tassa/u = Lt_contenitore × (Grado% / 100) × 7.5036": "Impuesto/u = Lt_envase × (Grado% / 100) × 7.5036",
+ "Dove 7.5036 = aliquota 750,36 €/hl · Es: 20 Lt × 10,8% × 7.5036 = 16,21 €/u": "Donde 7.5036 = tipo 750,36 €/hl · Ej.: 20 Lt × 10,8% × 7.5036 = 16,21 €/u",
+ "Litri per unità (dimensione contenitore)": "Litros por unidad (tamaño del envase)",
+ "Grado alcolico (%)": "Grado alcohólico (%)",
+ "Aliquota fissa: 750,36 €/hl (AIEM Canarie — Beverage)": "Tipo fijo: 750,36 €/hl (AIEM Canarias — Beverage)",
+ "🌾 Dry (Secco)": "🌾 Dry (Seco)",
+ "🧊 Frozen (Surgelato)": "🧊 Frozen (Congelado)",
+ "🚚 Trasporto": "🚚 Transporte",
+ "🚛 Camion (Gomma)": "🚛 Camión (Carretera)",
+ "🚢 Container (Mare)": "🚢 Contenedor (Mar)",
+ "📦 Pallet per TRUCK": "📦 Palets por CAMIÓN",
+ "📦 Pallet per CONTAINER": "📦 Palets por CONTENEDOR",
+ "AREA FORNITORE": "ÁREA PROVEEDOR",
+ "Nord Italia": "Norte de Italia",
+ "Sud Italia": "Sur de Italia",
+ "🏝️ Destinazioni": "🏝️ Destinos",
+ "🚚 Fornitore & Trasportatore": "🚚 Proveedor y Transportista",
+ "Fornitore": "Proveedor",
+ "(facoltativo: precompila il trasportatore)": "(opcional: rellena el transportista)",
+ "Cerca il fornitore…": "Buscar el proveedor…",
+ "Trasportatore": "Transportista",
+ "— Seleziona —": "— Selecciona —",
+ "DAP Almacén (consegnato in magazzino Canarie)": "DAP Almacén (entregado en el almacén de Canarias)",
+ "Transmediterránea (€/pallet)": "Transmediterránea (€/palet)",
+ "Tecali (€/pallet)": "Tecali (€/palet)",
+ "P&P (€/pallet)": "P&P (€/palet)",
+ "MPG Nestlé (€/container)": "MPG Nestlé (€/contenedor)",
+ "MPG Molisana (€/container, gomma da porto)": "MPG Molisana (€/contenedor, carretera desde el puerto)",
+ "📐 Unità di Misura di vendita": "📐 Unidad de Medida de venta",
+ "Prezzo acquisto (€)": "Precio de compra (€)",
+ "listino + IC 2%": "lista de precios + IC 2%",
+ "Pallet per container": "Palets por contenedor",
+ "(default: 24)": "(por defecto: 24)",
+ "Seleziona il trasportatore e l'unità di misura: compariranno solo i campi necessari al calcolo.": "Selecciona el transportista y la unidad de medida: solo aparecerán los campos necesarios para el cálculo.",
+ "🧾 AIEM & Accisa": "🧾 AIEM e Impuesto especial",
+ "🥃 Superalcolici (SPIRITS) — accisa": "🥃 Bebidas de alta graduación (SPIRITS) — impuesto especial",
+ "Litri per bottiglia": "Litros por botella",
+ "Accisa/bottiglia = Lt × (grado/100) × 7.5036 (750,36 €/hl)": "Impuesto especial/botella = Lt × (grado/100) × 7.5036 (750,36 €/hl)",
+ "AIEM e accisa non si aggiungono (come nel modello): Std Cost = prezzo ÷ 0,98.": "no se añaden AIEM ni impuesto especial (como en el modelo): Std Cost = precio ÷ 0,98.",
+ "Completa i campi per calcolare": "Completa los campos para calcular",
+ "✦ Risultati — Standard Cost 2": "✦ Resultados — Standard Cost 2",
+ "💰 Margine su Prezzo di Vendita": "💰 Margen sobre Precio de Venta",
+ "Inserisci PVP": "Introduce el PVP",
+ "Isole: Gran Canaria, Tenerife": "Islas: Gran Canaria, Tenerife",
+ "Isole: Lanzarote, Fuerteventura": "Islas: Lanzarote, Fuerteventura",
+ "Isole": "Islas",
+ "Margine": "Margen",
+ "🔄 Aggiorna Margini": "🔄 Actualizar márgenes",
+ "Stima indicativa basata sui parametri del modello ufficiale. I valori reali possono variare in base ad accordi specifici con il vettore, posizione geografica del fornitore, aliquota AIEM effettiva per categoria merceologica, e classificazione MTS/MTO definitiva. Verificare sempre con il modello Excel prima del caricamento su NAV.": "Estimación indicativa basada en los parámetros del modelo oficial. Los valores reales pueden variar según acuerdos específicos con el transportista, ubicación geográfica del proveedor, tipo de AIEM efectivo por categoría de producto y clasificación MTS/MTO definitiva. Verificar siempre con el modelo Excel antes de cargar en NAV.",
+ "✦ Risultati — Standard Cost NON IFB": "✦ Resultados — Standard Cost NO IFB",
+ "Prezzo di vendita (€) per UoM": "Precio de venta (€) por UoM",
+ "margine calcolato sullo Standard Cost +2%": "margen calculado sobre el Standard Cost +2%",
+ "Stima indicativa basata sul modello NON IFB. Le tariffe di trasporto sono quelle medie sulle isole (come nel modello), quindi il costo non cambia per singola isola. Verificare sempre con il modello Excel prima del caricamento su NAV.": "Estimación indicativa basada en el modelo NO IFB. Las tarifas de transporte son las medias de las islas (como en el modelo), por lo que el coste no cambia por isla. Verificar siempre con el modelo Excel antes de cargar en NAV.",
+ "es. 2.50": "p. ej. 2.50",
+ "es. 2.30": "p. ej. 2.30",
+ "es. 2.70": "p. ej. 2.70",
+ "es. 12": "p. ej. 12",
+ "es. 6": "p. ej. 6",
+ "es. 70": "p. ej. 70",
+ "es. 720": "p. ej. 720",
+ "es. 4": "p. ej. 4",
+ "es. 0.75 (bottiglia) · 5 · 20": "p. ej. 0.75 (botella) · 5 · 20",
+ "es. 11.5": "p. ej. 11.5",
+ "es. 5": "p. ej. 5",
+ "es. 0.7": "p. ej. 0.7",
+ "es. 40": "p. ej. 40",
+ "pezzo": "pieza",
+ "cartone": "caja",
+ "kg": "kg",
+ "€ / pezzo": "€ / pieza",
+ "€ / cartone": "€ / caja",
+ "€ / kg": "€ / kg",
+ "Diversa dall'unità di vendita: il prezzo viene convertito in € per ": "Distinta de la unidad de venta: el precio se convierte a € por ",
+ "Uguale all'unità di vendita: nessuna conversione.": "Igual que la unidad de venta: sin conversión.",
+ "⚠️ Inserisci i dati richiesti per convertire il prezzo.": "⚠️ Introduce los datos necesarios para convertir el precio.",
+ "Prezzo convertito: € ": "Precio convertido: € ",
+ "PEZZO": "PIEZA",
+ "CARTONE": "CAJA",
+ "KG": "KG",
+ "Prezzo convertito per ": "Precio convertido por ",
+ " (€) — usato nel calcolo": " (€) — usado en el cálculo",
+ "Prezzo acquisto per ": "Precio de compra por ",
+ "Fonte": "Fuente",
+ " → per ": " → por ",
+ "Cartoni (BOX) per pallet": "Cajas (BOX) por palet",
+ "Prezzo per cartone/box. Divisore = box/pallet.": "Precio por caja/box. Divisor = box/palet.",
+ "Cartoni per pallet (non usato)": "Cajas por palet (no usado)",
+ "Inserisci il peso totale del pallet in Kg.": "Introduce el peso total del palet en kg.",
+ "⚠️ Container (Mare) non disponibile per prodotti Frozen.": "⚠️ Contenedor (Mar) no disponible para productos Frozen.",
+ "✦  CALCOLA STANDARD COST": "✦  CALCULAR STANDARD COST",
+ "Prezzo acquisto (": "Precio de compra (",
+ ") · per ": ") · por ",
+ "↳ convertito · per ": "↳ convertido · por ",
+ "🏭 Deposito": "🏭 Depósito",
+ "🚛 FOR — nessun handling": "🚛 FOR — sin handling",
+ "Trasporto /": "Transporte /",
+ "Inland + Dogana": "Inland + Aduana",
+ "Costo pallet /": "Coste del palet /",
+ "🍷 Tassa alcolici AIEM (": "🍷 Impuesto alcoholes AIEM (",
+ "+2% (concordato)": "+2% (acordado)",
+ "STANDARD COST 2 FINALE": "STANDARD COST 2 FINAL",
+ "Standard Cost 2 Finale": "Standard Cost 2 Final",
+ "per": "por",
+ "incl. +2% concordato": "incl. +2% acordado",
+ "Inserisci il prezzo di acquisto.": "Introduce el precio de compra.",
+ "Seleziona il trasportatore.": "Selecciona el transportista.",
+ "Trasportatore non riconosciuto.": "Transportista no reconocido.",
+ "Nel modello non c'è una tariffa per ": "En el modelo no hay tarifa para ",
+ " con temperatura ": " con temperatura ",
+ "Inserisci: ": "Introduce: ",
+ " per convertire il prezzo.": " para convertir el precio.",
+ "pezzi per cartone": "piezas por caja",
+ "cartoni per pallet": "cajas por palet",
+ "kg per cartone": "kg por caja",
+ "kg per pallet": "kg por palet",
+ "pallet per container": "palets por contenedor",
+ "Nessun costo di trasporto: Std Cost = prezzo ÷ 0,98.": "Sin coste de transporte: Std Cost = precio ÷ 0,98.",
+ "Per DAP Almacén basta il prezzo di acquisto.": "Para DAP Almacén basta con el precio de compra.",
+ "Tariffa ": "Tarifa ",
+ "€/kg": "€/kg",
+ "€/pallet": "€/palet",
+ "€/container": "€/contenedor",
+ "Servono i dati di pallettizzazione (da item card NAV) per ripartire il trasporto sull'UoM di vendita.": "Hacen falta los datos de paletización (de la item card de NAV) para repartir el transporte sobre la UoM de venta.",
+ "La tariffa è già per kg: nessun dato di pallettizzazione necessario.": "La tarifa ya es por kg: no hace falta ningún dato de paletización.",
+ "✅ Resa ": "✅ Resa ",
+ " · trasportatore ": " · transportista ",
+ " · spedizione a ": " · envío a ",
+ "pallet": "palet",
+ "container": "contenedor",
+ "Prezzo acquisto (incluso IC) · per ": "Precio de compra (incl. IC) · por ",
+ "Prezzo acquisto (incluso IC)": "Precio de compra (incl. IC)",
+ "Maggiorazione DAP Almacén (÷ 0,98)": "Recargo DAP Almacén (÷ 0,98)",
+ "Logistica /": "Logística /",
+ "🥃 Accisa spirits (": "🥃 Impuesto especial spirits (",
+ "NON IFB · ": "NO IFB · "
+};
+function tr(s) { return (state.lang === 'es' && Object.prototype.hasOwnProperty.call(ES, s)) ? ES[s] : s; }
+
+const _dom = [];   // testi e attributi statici, con l'originale italiano
+function _norm(s) { return s.replace(/\s+/g, ' ').trim(); }
+function registerDom() {
+  const w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
+    acceptNode: n => (n.parentElement && /^(SCRIPT|STYLE)$/.test(n.parentElement.tagName)) ? NodeFilter.FILTER_REJECT : (n.nodeValue.trim() ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT)
+  });
+  while (w.nextNode()) _dom.push({ node: w.currentNode, orig: w.currentNode.nodeValue });
+  document.querySelectorAll('[placeholder]').forEach(el => _dom.push({ el, attr: 'placeholder', orig: el.getAttribute('placeholder') }));
+}
+function applyDom() {
+  _dom.forEach(r => {
+    const es = (state.lang === 'es') ? ES[_norm(r.orig)] : undefined;
+    if (r.node) {
+      r.node.nodeValue = (es === undefined) ? r.orig : r.orig.match(/^\s*/)[0] + es + r.orig.match(/\s*$/)[0];
+    } else {
+      r.el.setAttribute(r.attr, es === undefined ? r.orig : es);
+    }
+  });
+}
+
+function toggleLang() { setLang(state.lang === 'it' ? 'es' : 'it'); }
+
+function setLang(lang) {
+  // stato dei risultati prima del cambio (si ricostruiscono nella nuova lingua)
+  const ifbShown = document.getElementById('results').classList.contains('visible');
+  const niShown = document.getElementById('ni-results').classList.contains('visible');
+  const pvp1 = document.getElementById('pvp-1').value, pvp2 = document.getElementById('pvp-2').value, niPvp = document.getElementById('ni-pvp').value;
+
+  state.lang = lang;
+  document.documentElement.lang = lang;
+  document.title = lang === 'es' ? 'Standard Cost Estimator · Canarias | IFB' : 'Standard Cost Estimator · Canarie | IFB';
+  document.getElementById('langFlag').textContent = lang === 'it' ? '🇪🇸' : '🇮🇹';
+  document.getElementById('langLabel').textContent = lang === 'it' ? 'Español' : 'Italiano';
+  applyDom();
+
+  // testi generati dal codice
+  const ub = document.querySelector('#uom-btns .btn-toggle.active'); if (ub) setUOM(ub);
+  updateFobWarn();
+  niVendorChange();
+  checkCanCalc();
+
+  if (ifbShown && state.mode === 'IFB') {
+    calculate();
+    document.getElementById('pvp-1').value = pvp1; document.getElementById('pvp-2').value = pvp2; updateMargins();
+  }
+  if (niShown && state.mode === 'NONIFB') {
+    niCalculate();
+    document.getElementById('ni-pvp').value = niPvp; niMargin();
+  }
+}
+
 // ─── INIT ──────────────────────────────────────────────────────
 
 // Inizializza i campi prezzo e sincronizza
 document.addEventListener('DOMContentLoaded', function() {
+  registerDom();
   niInit();
   syncPrice();
   checkCanCalc();
