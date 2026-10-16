@@ -416,12 +416,13 @@
 
   <div class="grid-2">
     <div class="box">
-      <div class="box-label">📐 Unità di Misura (UOM)</div>
+      <div class="box-label">📐 Unità di Misura di vendita (UOM)</div>
       <div class="grid-3" id="uom-btns">
         <button class="btn-toggle active" data-uom="PCS" onclick="setUOM(this)">🔢 PCS</button>
         <button class="btn-toggle"        data-uom="BOX" onclick="setUOM(this)">📦 BOX</button>
         <button class="btn-toggle"        data-uom="KG"  onclick="setUOM(this)">⚖️ KG</button>
       </div>
+      <div class="uom-hint" style="color:var(--gold-light, #E8C97A);">È la UoM di vendita: lo Standard Cost che esce è espresso in questa unità.</div>
       <div class="uom-hint" id="uom-hint">
         Prezzo per singolo pezzo. Divisore = pz/cartone × cartoni/pallet.
       </div>
@@ -1656,7 +1657,8 @@ const ES = {
  "calcolo per isola · gomma / mare": "cálculo por isla · carretera / mar",
  "🛒 Prodotti NON IFB": "🛒 Productos NO IFB",
  "fornitori terzi · per trasportatore": "proveedores terceros · por transportista",
- "📐 Unità di Misura (UOM)": "📐 Unidad de Medida (UOM)",
+ "📐 Unità di Misura di vendita (UOM)": "📐 Unidad de Medida de venta (UOM)",
+ "È la UoM di vendita: lo Standard Cost che esce è espresso in questa unità.": "Es la UoM de venta: el Standard Cost resultante se expresa en esta unidad.",
  "Prezzo per singolo pezzo. Divisore = pz/cartone × cartoni/pallet.": "Precio por pieza. Divisor = pz/caja × cajas/palet.",
  "🏭 Gestione Magazzino": "🏭 Gestión de Almacén",
  "Costo In+Stock+Out per pallet · usa prezzo DAP": "Coste In+Stock+Out por palet · usa precio DAP",
