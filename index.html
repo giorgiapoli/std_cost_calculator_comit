@@ -621,6 +621,7 @@
             <option value="P&amp;P">P&amp;P (€/pallet)</option>
             <option value="MPG NESTLE">MPG Nestlé (€/container)</option>
             <option value="MPG MOLISANA">MPG Molisana (€/container, gomma da porto)</option>
+            <option value="TOTAL FRESH">Total Fresh (€/kg)</option>
           </select>
           <div class="price-hint" id="ni-carrier-hint"></div>
         </div>
@@ -1356,10 +1357,11 @@ const NI = {
   CARRIERS: {
     'FRIPECAN':          { ship: 'KG',        tariffs: { DRY: 0.23, FRESH: 0.25, FROZEN: 0.25 } },
     'TRANSMEDITERRANEA': { ship: 'PALLET',    tariffs: { DRY: 180, FRESH: 195, FROZEN: 195 } },
-    'TECALI':            { ship: 'PALLET',    tariffs: { FRESH: 70, FROZEN: 0 } },
+    'TECALI':            { ship: 'PALLET',    tariffs: { FRESH: 70, FROZEN: 1 } },
     'P&P':               { ship: 'PALLET',    tariffs: { FROZEN: 58 } },
     'MPG NESTLE':        { ship: 'CONTAINER', tariffs: { DRY: 4600 } },
     'MPG MOLISANA':      { ship: 'CONTAINER', tariffs: { DRY: 800 } },
+    'TOTAL FRESH':       { ship: 'KG',        tariffs: { FRESH: 6 } },
   },
   LABELS: { pcsBox: 'pezzi per cartone', boxPlt: 'cartoni per pallet', kgBox: 'kg per cartone', kgPlt: 'kg per pallet', pltCont: 'pallet per container' },
 };
@@ -1449,8 +1451,8 @@ function calcNonIfb(p) {
 }
 // ==NI-CORE-END==
 
-const NI_VENDORS = [["HOSTERIA BUTTARELLI S.L.", "DAP", "DAP ALMACEN", ""], ["LA MOLISANA S.p.A.", "DAP", "MPG MOLISANA", "CONTAINER"], ["TECALI S.L.", "EXW", "TECALI", "PALLET"], ["IMPORTACIÓN CONGELADOS PREMIUM S.L.", "DAP", "TRANSMEDITERRANEA", "PALLET"], ["ARCECARNE S.L.", "FCA", "FRIPECAN", "KG"], ["MENCEYES FOOD COMPANY, SL", "DAP", "DAP ALMACEN", ""], ["SEGAFREDO ZANETTI (PORTUGAL) COM E DIST DE CAFÉ SA", "FCA", "FRIPECAN", "KG"], ["BELLOTERRA DELICATESSEN S.L.", "FCA", "FRIPECAN", "KG"], ["PANNA & POMODORO. S.L.", "EXW", "DAP ALMACEN", ""], ["NESTLÉ WATERS ESPAÑA S.A.", "FCA", "MPG NESTLE", "CONTAINER"], ["PREMIUM DRINKS. S.L.U.", "DAP", "DAP ALMACEN", ""], ["CAMPOFRIO FOOD GROUP SA", "DAP", "DAP ALMACEN", ""], ["CASA SANTOÑA, S.L.", "FCA", "FRIPECAN", "KG"], ["MANSUETO GROUP S.L.", "DAP", "DAP ALMACEN", ""], ["LAUMONT S.L.U.", "FCA", "FRIPECAN", "KG"], ["MEDIAPIZZA S.C.", "DAP", "DAP ALMACEN", ""], ["SACESA SELECCION SL", "DAP", "DAP ALMACEN", ""], ["COLLVERD, PRODUCTES DE LÁMEC, S.A.", "FCA", "FRIPECAN", "KG"], ["SKI COMERCIAL.I.S.A.", "DAP", "FRIPECAN", "KG"], ["AHUMADOS CANARIOS, SA", "DAP", "DAP ALMACEN", ""], ["FERGLOBAL SLU", "DAP", "DAP ALMACEN", ""], ["ISLA FISH IMPORT & EXPORT SL", "DAP", "DAP ALMACEN", ""], ["EL COCHINILLO SEGOVIANO S.L.", "FCA", "FRIPECAN", "KG"], ["AMAGOLDIAMADO GONZALEZ DIAZ E HIJOS", "DAP", "DAP ALMACEN", ""], ["PEÑAMAR DEL ATLANTICO, S.L.", "DAP", "DAP ALMACEN", ""], ["ANCHOAS DE SANTOÑA SL", "DAP", "DAP ALMACEN", ""], ["LICORERIA ARTESANAL EL JARAL", "DAP", "DAP ALMACEN", ""], ["OASISFISH S.L.", "DAP", "DAP ALMACEN", ""], ["EL PANTAR SAT N 1043 CAT", "FCA", "FRIPECAN", "KG"], ["TOBACORP, S.L.", "DAP", "FRIPECAN", "KG"], ["MEATLAMB SL", "FCA", "FRIPECAN", "KG"], ["INTERATLANTIC FISH SLU", "FCA", "FRIPECAN", "KG"], ["HARINERA CANARIA S.A.", "DAP", "DAP ALMACEN", ""], ["CONGELADOS NORIBERICA, S.A.", "DAP", "DAP ALMACEN", ""], ["P. PORXAS PAIROS S.L.", "FCA", "TRANSMEDITERRANEA", "PALLET"], ["PESCAPUERTA TRADE S.L.", "DAP", "DAP ALMACEN", ""], ["PRODUCTOS LACTEOS CANARIAS SL", "DAP", "DAP ALMACEN", ""], ["INSULAR CANARIAS DE BEBIDAS. S.A.", "DAP", "DAP ALMACEN", ""], ["JUALEX CANARIAS S L", "DAP", "DAP ALMACEN", ""], ["COMPRE Y COMPARE S.A.U.", "DAP", "DAP ALMACEN", ""], ["DIFRAMI, S.L.", "DAP", "DAP ALMACEN", ""], ["GREAT SPIRIT DRINKS S.L.", "DAP", "DAP ALMACEN", ""], ["JUAN MARTINEZ S.L.", "DAP", "DAP ALMACEN", ""], ["CASA SANTOÑA, S.L.", "FCA", "FRIPECAN", "KG"], ["MASSIMO ZANETTI BEVERAGE IBERIA, S.A.", "FCA", "FRIPECAN", "KG"]];
-const NI_CARRIER_NAMES = { 'DAP ALMACEN': 'DAP Almacén', 'FRIPECAN': 'Fripecan', 'TRANSMEDITERRANEA': 'Transmediterránea', 'TECALI': 'Tecali', 'P&P': 'P&P', 'MPG NESTLE': 'MPG Nestlé', 'MPG MOLISANA': 'MPG Molisana' };
+const NI_VENDORS = [["FRESHCADO RECIEN PESCADO, S.L.", "", "TOTAL FRESH", "KG"], ["ENTREPEÑAS, S.L.", "", "FRIPECAN", "KG"], ["CARBUGA, S.L.", "", "FRIPECAN", "KG"], ["HOSTERIA BUTTARELLI S.L.", "DAP", "DAP ALMACEN", ""], ["LA MOLISANA S.p.A.", "DAP", "MPG MOLISANA", "CONTAINER"], ["TECALI S.L.", "EXW", "TECALI", "PALLET"], ["IMPORTACIÓN CONGELADOS PREMIUM S.L.", "DAP", "TRANSMEDITERRANEA", "PALLET"], ["ARCECARNE S.L.", "FCA", "FRIPECAN", "KG"], ["MENCEYES FOOD COMPANY, SL", "DAP", "DAP ALMACEN", ""], ["SEGAFREDO ZANETTI (PORTUGAL) COM E DIST DE CAFÉ SA", "FCA", "FRIPECAN", "KG"], ["BELLOTERRA DELICATESSEN S.L.", "FCA", "FRIPECAN", "KG"], ["PANNA & POMODORO. S.L.", "EXW", "DAP ALMACEN", ""], ["NESTLÉ WATERS ESPAÑA S.A.", "FCA", "MPG NESTLE", "CONTAINER"], ["PREMIUM DRINKS. S.L.U.", "DAP", "DAP ALMACEN", ""], ["CAMPOFRIO FOOD GROUP SA", "DAP", "DAP ALMACEN", ""], ["CASA SANTOÑA, S.L.", "FCA", "FRIPECAN", "KG"], ["MANSUETO GROUP S.L.", "DAP", "DAP ALMACEN", ""], ["LAUMONT S.L.U.", "FCA", "FRIPECAN", "KG"], ["MEDIAPIZZA S.C.", "DAP", "DAP ALMACEN", ""], ["SACESA SELECCION SL", "DAP", "DAP ALMACEN", ""], ["COLLVERD, PRODUCTES DE LÁMEC, S.A.", "FCA", "FRIPECAN", "KG"], ["SKI COMERCIAL.I.S.A.", "DAP", "FRIPECAN", "KG"], ["AHUMADOS CANARIOS, SA", "DAP", "DAP ALMACEN", ""], ["FERGLOBAL SLU", "DAP", "DAP ALMACEN", ""], ["ISLA FISH IMPORT & EXPORT SL", "DAP", "DAP ALMACEN", ""], ["EL COCHINILLO SEGOVIANO S.L.", "FCA", "FRIPECAN", "KG"], ["AMAGOLDIAMADO GONZALEZ DIAZ E HIJOS", "DAP", "DAP ALMACEN", ""], ["PEÑAMAR DEL ATLANTICO, S.L.", "DAP", "DAP ALMACEN", ""], ["ANCHOAS DE SANTOÑA SL", "DAP", "DAP ALMACEN", ""], ["LICORERIA ARTESANAL EL JARAL", "DAP", "DAP ALMACEN", ""], ["OASISFISH S.L.", "DAP", "DAP ALMACEN", ""], ["EL PANTAR SAT N 1043 CAT", "FCA", "FRIPECAN", "KG"], ["TOBACORP, S.L.", "DAP", "FRIPECAN", "KG"], ["MEATLAMB SL", "FCA", "FRIPECAN", "KG"], ["INTERATLANTIC FISH SLU", "FCA", "FRIPECAN", "KG"], ["HARINERA CANARIA S.A.", "DAP", "DAP ALMACEN", ""], ["CONGELADOS NORIBERICA, S.A.", "DAP", "DAP ALMACEN", ""], ["P. PORXAS PAIROS S.L.", "FCA", "TRANSMEDITERRANEA", "PALLET"], ["PESCAPUERTA TRADE S.L.", "DAP", "DAP ALMACEN", ""], ["PRODUCTOS LACTEOS CANARIAS SL", "DAP", "DAP ALMACEN", ""], ["INSULAR CANARIAS DE BEBIDAS. S.A.", "DAP", "DAP ALMACEN", ""], ["JUALEX CANARIAS S L", "DAP", "DAP ALMACEN", ""], ["COMPRE Y COMPARE S.A.U.", "DAP", "DAP ALMACEN", ""], ["DIFRAMI, S.L.", "DAP", "DAP ALMACEN", ""], ["GREAT SPIRIT DRINKS S.L.", "DAP", "DAP ALMACEN", ""], ["JUAN MARTINEZ S.L.", "DAP", "DAP ALMACEN", ""], ["CASA SANTOÑA, S.L.", "FCA", "FRIPECAN", "KG"], ["MASSIMO ZANETTI BEVERAGE IBERIA, S.A.", "FCA", "FRIPECAN", "KG"]];
+const NI_CARRIER_NAMES = { 'DAP ALMACEN': 'DAP Almacén', 'FRIPECAN': 'Fripecan', 'TRANSMEDITERRANEA': 'Transmediterránea', 'TECALI': 'Tecali', 'P&P': 'P&P', 'MPG NESTLE': 'MPG Nestlé', 'MPG MOLISANA': 'MPG Molisana', 'TOTAL FRESH': 'Total Fresh' };
 const NI_UNIT = { KG: '€/kg', PALLET: '€/pallet', CONTAINER: '€/container' };
 const niState = { temp: 'DRY', uom: 'PCS', puom: 'PCS', puomManual: false, spirits: false };
 
@@ -1510,7 +1512,7 @@ function niVendorChange() {
   const v = NI_VENDORS.find(x => x[0].toLowerCase() === name);
   if (v) {
     document.getElementById('ni-carrier').value = v[2];
-    hint.textContent = tr('✅ Resa ') + v[1] + tr(' · trasportatore ') + (NI_CARRIER_NAMES[v[2]] || v[2]) + (v[3] ? tr(' · spedizione a ') + tr(v[3].toLowerCase()) : '');
+    hint.textContent = (v[1] ? tr('✅ Resa ') + v[1] + tr(' · trasportatore ') : tr('✅ Trasportatore ')) + (NI_CARRIER_NAMES[v[2]] || v[2]) + (v[3] ? tr(' · spedizione a ') + tr(v[3].toLowerCase()) : '');
   } else {
     hint.textContent = '';
   }
@@ -1646,6 +1648,7 @@ const ES = {
  "Deposito + Inbound + Picking · usa prezzo MTS (o DAP se 0)": "Depósito + Inbound + Picking · usa precio MTS (o DAP si es 0)",
  "📦 Prezzo & Contenenza": "📦 Precio y Paletización",
  "Prezzo acquisto per PEZZO (€)": "Precio de compra por PIEZA (€)",
+ "✅ Trasportatore ": "✅ Transportista ",
  "Prezzo di acquisto": "Precio de compra",
  "Prezzo acquisto": "Precio de compra",
  "⛔ Seleziona prima la gestione del magazzino (MTO / FOR / MTS): poi comparirà il campo prezzo corretto.": "⛔ Selecciona primero la gestión de almacén (MTO / FOR / MTS): después aparecerá el campo de precio correcto.",
